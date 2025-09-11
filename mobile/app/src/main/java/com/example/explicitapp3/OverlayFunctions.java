@@ -71,16 +71,33 @@ public class OverlayFunctions {
     TextModel textModel;
     private static final String TAG = "OverlayFunctions";
 
-
+    /**
+     * Sets the media projection manager for screen capture operations.
+     *
+     * @param mediaProjectionManager The system media projection manager
+     * @return The same media projection manager for method chaining
+     */
     public MediaProjectionManager setMediaProjectionManager(MediaProjectionManager mediaProjectionManager) {
         this.mediaProjectionManager = mediaProjectionManager;
         return this.mediaProjectionManager;
     }
-
+    /**
+     * Sets the active media projection instance for screen capture.
+     *
+     * @param mediaProjection The media projection instance obtained from user permission
+     * @see MediaProjectionManager#getMediaProjection(int, Intent)
+     */
     public void setMediaProjection(MediaProjection mediaProjection) {
         this.mediaProjection = mediaProjection;
     }
-
+    /**
+     * Sets the display density for virtual display configuration.
+     * The dpi is the quality of the virtual display, higher dpi has higher resolution
+     * but also higher memory consumption
+     *
+     * @param dpi Display density in dots per inch
+     * @see DisplayMetrics#densityDpi
+     */
     public void setDpi(int dpi) {
         this.dpi = dpi;
     }
@@ -89,7 +106,18 @@ public class OverlayFunctions {
     public void setWindowManager(WindowManager windowManager) {
         this.wm = windowManager;
     }
-
+    /**
+     * Initializes and configures the foreground service notification.
+     * Also initializes the text model for content analysis.
+     *
+     * @param context Application context {@code Context context = getApplicationContext()}
+     *                You cannot fetch context on a extend service class as to why you need to import it
+     * @return The created notification instance
+     * @throws IOException If text model initialization fails
+     *
+     * @see NotificationHelper#createNotificationChannel(Context)
+     * @see TextModel#initTextModel(Context, String)
+     */
     public Notification setNotification(Context context) throws IOException {
         NotificationHelper.createNotificationChannel(context);
         notification = NotificationHelper.createNotification(context);
@@ -98,11 +126,33 @@ public class OverlayFunctions {
 //
         return notification;
     }
+
+    /**
+     * It may initialize the TensorFlow Lite model.
+     * NOTE: this may fail if you did not create an asset folder for models
+     * @throws IOException If the model file cannot be loaded or is corrupted
+     * @apiNote Currently uses the exported NSFW model with metadata
+     */
     public void initModel() throws IOException {
 //        textModel.initTextModel(mcontext, "try_model/quantized/model.tflite");
         textModel.initTextModel(mcontext, "exporter_model/exporter_nsfw_model_metadata.tflite");
     }
 
+    /**
+     * Starts the screen capture process using the configured media projection.
+     * For the meantime, this will not display the code
+     * <p>The method:
+     * <ul>
+     *   <li>Registers a callback to handle projection stop events</li>
+     *   <li>Releases any existing virtual display (if any to avoid error)</li>
+     *   <li>Creates a fresh virtual display with current screen dimensions</li>
+     *   <li>Uses {@code AUTO_MIRROR} flag for automatic content mirroring</li>
+     * </ul>
+     *
+     * @throws IllegalStateException If media projection is not initialized
+     * @see #getBounds()
+     * @see MediaProjection#createVirtualDisplay(String, int, int, int, int, Surface, VirtualDisplay.Callback, Handler)
+     */
     public void startScreenCapture() {
         MediaProjection.Callback callback = new MediaProjection.Callback() {
             @Override
@@ -130,7 +180,12 @@ public class OverlayFunctions {
                 handler
         );
     }
-
+    /**
+     * Retrieves the dimensions that will be used to set the regions for the virtual display.
+     *
+     * @return Array containing [width, height] of the current display
+     * @see WindowManager#getCurrentWindowMetrics()
+     */
     public int[] getBounds() {
         WindowMetrics windowMetrics = wm.getCurrentWindowMetrics();
         Rect bounds = windowMetrics.getBounds();
@@ -138,7 +193,15 @@ public class OverlayFunctions {
         int height = bounds.height();
         return new int[]{width, height};
     }
-
+    /**
+     * Creates and displays a toggleable overlay view for blurred blocking.
+     *
+     * @param lf Layout inflater for creating the overlay view
+     * @throws RuntimeException If overlay cannot be added to window manager
+     *
+     * @see WindowManager.LayoutParams#TYPE_APPLICATION_OVERLAY
+     * @see View#setVisibility(int)
+     */
     public void setupToggleableOverlay(LayoutInflater lf) {
         Drawable drawable = getDrawable(mcontext, R.drawable.window_background);
         WindowManager windowManager = mcontext.getSystemService(WindowManager.class);
@@ -183,7 +246,23 @@ public class OverlayFunctions {
         // init the imageview
         wm.addView(view, params);
     }
-
+    /**
+     * Sets up the screenshot capture system using ImageReader for real-time screen analysis.
+     * Creates a background thread for image processing and configures automated screenshot saving.
+     *
+     * <p>The system:
+     * <ul>
+     *   <li>image processing - converting image to bitmap</li>
+     *   <li>Implements automatic text recognition and prediction on captured frames</li>
+     *   <li>Optional: Saves screenshots to device gallery for debugging/logging</li>
+     *   <li>Handles proper resource cleanup for images and bitmaps (every read update)</li>
+     * </ul>
+     *
+     * @throws RuntimeException If ImageReader setup fails or background thread cannot be created
+     * @see ImageReader#newInstance(int, int, int, int)
+     * @see #imageToBitmap(Image)
+     * @see TextModel#textRecognition(Bitmap)
+     */
     @SuppressLint("ClickableViewAccessibility")
     public void setupOverlayScreenshot() {
         handlerThread = new HandlerThread("ScreenCapture");
@@ -227,7 +306,15 @@ public class OverlayFunctions {
         surface = imageReader.getSurface();
         if (mediaProjection != null) startScreenCapture();
     }
-
+    /**
+     * Converts an Android Image object to a Bitmap for processing.
+     * Reconstruict the image using pixelstride.
+     *
+     * @param image The source Image from ImageReader
+     * @return Bitmap of the image
+     *
+     * @see Image.Plane
+     */
     public Bitmap imageToBitmap(Image image) {
         Image.Plane[] planes = image.getPlanes();
         ByteBuffer buffer = planes[0].getBuffer();
@@ -239,11 +326,16 @@ public class OverlayFunctions {
         bitmap.copyPixelsFromBuffer(buffer);
         return bitmap;
     }
-
+    /**
+     * Saves a bitmap image to the device gallery using the MediaStore API.
+     *
+     * @param bitmap The bitmap to save to gallery
+     * @throws RuntimeException If save operation fails
+     *
+     * @see MediaStore.Images.Media#EXTERNAL_CONTENT_URI
+     * @see ContentResolver#insert(Uri, ContentValues)
+     */
     public void saveToGalleryBitmap(Bitmap bitmap) {
-//        Log.w(TAG, "onSurfaceTextureUpdated: hi...");
-
-
         // can configure the bitmap here
         if (bitmap != null) {
             // save to gallery
@@ -296,7 +388,24 @@ public class OverlayFunctions {
         mVirtualDisplay.release();
         mVirtualDisplay = null;
     }
-
+    /**
+     * Performs cleanup of all resources used by OverlayFunctions and OverlayService.
+     * This method should be called when the service is stopping to prevent memory leaks.
+     *
+     * <p>The operation itself consist of the following:
+     * <ul>
+     *   <li>Stops screen capture and releases virtual display</li>
+     *   <li>Removes overlay views from window manager</li>
+     *   <li>Shut down background threads</li>
+     *   <li>Closes ImageReader and releases surface</li>
+     *   <li>Cleans up text model resources</li>
+     * </ul>
+     * This needs to be doe to avoid memory leaks on app onClose and onShutdown
+     * @apiNote This method is safe to call multiple times
+     * @see #stopScreenCapture()
+     * @see HandlerThread#quitSafely()
+     * @see TextModel#cleanup()
+     */
     public void destroy() {
         stopScreenCapture();
         if (wm != null && screenMirror != null) {

@@ -52,6 +52,21 @@ public class MainActivity extends AppCompatActivity {
         overlayPermissionButton = findViewById(R.id.overlayPermissionButton);
         mediaProjectionManager = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
 
+        /**
+         * Configures the overlay permission launcher to handle user responses to overlay permission requests.
+         * This launcher manages the flow when users grant or deny the SYSTEM_ALERT_WINDOW permission
+         * required for displaying content over other applications.
+         *
+         * <p>The launcher:
+         * <ul>
+         *   <li>Checks if overlay permission was granted using {@link Settings#canDrawOverlays(Context)}</li>
+         *   <li>Displays appropriate toast messages to inform the user</li>
+         *   <li>Enables or disables functionality based on permission status</li>
+         * </ul>
+         *
+         * @implNote Uses {@link ActivityResultContracts.StartActivityForResult} for modern permission handling
+         * @see Settings#ACTION_MANAGE_OVERLAY_PERMISSION
+         */
         overlayPermissionLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), r -> {
             if (Settings.canDrawOverlays(this))
                 Toast.makeText(this, "Permission granted", Toast.LENGTH_SHORT).show();
@@ -63,7 +78,34 @@ public class MainActivity extends AppCompatActivity {
             Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
             overlayPermissionLauncher.launch(i);
         });
-
+        /**
+         * Configures the media projection launcher to handle screen capture permission responses.
+         * This launcher processes the result of media projection permission requests and starts
+         * the overlay service if permission is granted.
+         *
+         * The reason this specific function uses foreground service is to comply to Android 15
+         * intent service transfer
+         *
+         * <p>On successful permission grant:
+         * <ul>
+         *   <li>Extracts result code and intent data from the permission response</li>
+         *   <li>Creates and starts {@link OverlayService} as a foreground service</li>
+         *   <li>Passes permission data to the service for screen capture initialization</li>
+         *   <li>Updates UI to reflect service running state</li>
+         * </ul>
+         * You will need to enable the following permission in manifest:
+         * {@code
+         *      <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+         *     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+         * }
+         * <p>On unsuccessful:
+         * <ul>
+         *   <li>Displays error message</li>
+         * </ul>
+         * @author xinzhao2627 (R. Montaniel)
+         * @see OverlayService
+         * @see ContextCompat#startForegroundService(Context, Intent)
+         */
         mediaProjectionLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), r -> {
             int resultCode = r.getResultCode();
             Intent data = r.getData();

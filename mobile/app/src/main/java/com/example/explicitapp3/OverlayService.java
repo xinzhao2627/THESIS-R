@@ -37,7 +37,48 @@ import com.example.explicitapp3.OverlayFunctions.*;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
+/**
+ * OverlayService is a foreground service that came from the main activity.
+ * This service runs continuously /silently in the background to capture
+ * screen content, analyze and process the image/text, and display overlays when needed (on basis.
+ *
+ * <p>The service implements several Android system services and APIs:
+ * <ul>
+ *   <li><strong>MediaProjection API</strong> - screen content capture</li>
+ *   <li><strong>WindowManager</strong> - system overlays display</li>
+ *   <li><strong>Foreground Service</strong> - persistency on background operation</li>
+ *   <li><strong>TensorFlow Lite</strong> - classification and analysis</li>
+ * </ul>
+ *
+ *
+ * <p>Required permissions and declarations in AndroidManifest.xml:
+ * <pre>{@code
+ * <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+ * <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+ * <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+ *
+ * <service
+ *     android:name=".OverlayService"
+ *     android:enabled="true"
+ *     android:exported="false"
+ *     android:foregroundServiceType="mediaProjection" />
+ * }</pre>
+ *
+ * <p>Usage from MainActivity:
+ * <pre>{@code
+ * Intent serviceIntent = new Intent(this, OverlayService.class);
+ * serviceIntent.putExtra("resultCode", resultCode);
+ * serviceIntent.putExtra("data", mediaProjectionIntent);
+ * ContextCompat.startForegroundService(this, serviceIntent);
+ * }</pre>
+ *
+ * @author xinzhao2627 (R. Montaniel)
+ * @version 1.0
+ * @since API level 21
+ * @see OverlayFunctions
+ * @see MainActivity
+ * @see MediaProjection
+ */
 public class OverlayService extends Service {
     public static final String TAG = "OverlayService";
     OverlayFunctions overlayFunctions;
