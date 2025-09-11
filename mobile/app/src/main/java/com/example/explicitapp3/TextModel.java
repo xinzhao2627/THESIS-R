@@ -15,13 +15,6 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
-import com.google.firebase.ml.common.modeldownload.FirebaseModelDownloadConditions;
-import com.google.firebase.ml.common.modeldownload.FirebaseModelManager;
-import com.google.firebase.ml.custom.FirebaseCustomRemoteModel;
-import com.google.firebase.ml.modeldownloader.CustomModel;
-import com.google.firebase.ml.modeldownloader.CustomModelDownloadConditions;
-import com.google.firebase.ml.modeldownloader.DownloadType;
-import com.google.firebase.ml.modeldownloader.FirebaseModelDownloader;
 
 import org.tensorflow.lite.support.label.Category;
 import org.tensorflow.lite.task.core.TaskJniUtils;
@@ -44,8 +37,7 @@ public class TextModel {
 
     public void initTextModel(Context context, String textModelName) throws IOException {
         this.mcontext = context;
-        BertNLClassifier.BertNLClassifierOptions options =
-                BertNLClassifier.BertNLClassifierOptions.builder().build();
+        BertNLClassifier.BertNLClassifierOptions options = BertNLClassifier.BertNLClassifierOptions.builder().build();
 
         ByteBuffer modelBuffer_base = TaskJniUtils.loadMappedFile(context, textModelName);
         classifier = BertNLClassifier.createFromBufferAndOptions(modelBuffer_base, options);
@@ -92,9 +84,9 @@ public class TextModel {
         try {
             List<Category> results = classifier.classify(text);
 
-            if (toBlock(results)){
+            if (toBlock(results)) {
                 // TODO: open the blur screen
-                if (view != null){
+                if (view != null) {
 
                 }
             }
