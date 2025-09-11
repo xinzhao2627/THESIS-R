@@ -226,7 +226,6 @@ public class OverlayFunctions {
             }
         });
 
-
         DisplayMetrics displayMetrics = new DisplayMetrics();
         wm.getDefaultDisplay().getRealMetrics(displayMetrics);
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
@@ -243,6 +242,31 @@ public class OverlayFunctions {
         );
         params.setBlurBehindRadius(50);
 
+        // init the imageview
+        wm.addView(view, params);
+    }
+
+public void setupDynamicOverlayNonBlur(LayoutInflater lf, int widthR, int heightR) {
+        Drawable drawable = getDrawable(mcontext, R.drawable.window_background);
+        WindowManager windowManager = mcontext.getSystemService(WindowManager.class);
+
+        int layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+
+        // this is the linearview (drawable)
+        LinearView view = lf.inflate(R.layout.LinearView, null);
+        WindowManager.LayoutParams params = new
+
+view.setBackground(Color.parseColor("#FF0000"));
+ WindowManager.LayoutParams(               widthR,
+               heightR,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        |   WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE |
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                        | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                PixelFormat.TRANSLUCENT
+        );
+        
         // init the imageview
         wm.addView(view, params);
     }
