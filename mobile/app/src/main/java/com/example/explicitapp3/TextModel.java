@@ -5,29 +5,15 @@ import android.graphics.Bitmap;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.View;
-
-import androidx.annotation.NonNull;
-
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
-
 import org.tensorflow.lite.support.label.Category;
 import org.tensorflow.lite.task.core.TaskJniUtils;
 import org.tensorflow.lite.task.text.nlclassifier.BertNLClassifier;
-import org.tensorflow.lite.task.core.BaseOptions;
-import org.tensorflow.lite.task.text.nlclassifier.NLClassifier;
-
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 /**
  * TextModel class provides text recognition and classification functionality using Google Text recognizer
@@ -73,7 +59,7 @@ public class TextModel {
         initTextModel(getApplicationContext(), "assets/path/to/model.tflite")
         }</pre></p>
      */
-    public void initTextModel(Context context, String textModelName) throws IOException {
+    public  TextModel(Context context, String textModelName) throws IOException {
         this.mcontext = context;
         BertNLClassifier.BertNLClassifierOptions options = BertNLClassifier.BertNLClassifierOptions.builder().build();
 
