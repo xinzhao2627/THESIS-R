@@ -54,20 +54,20 @@ public class ImageModel {
     int tensorHeight = 0;
     int numChannel = 0;
     int numElements = 0;
+    float scale = 0f;
+    int zeroPoint = 0;
+
     List<String> labels;
     ImageProcessor imageProcessor;
+
     public final String TAG = "ImageModel";
     private static final float INPUT_MEAN = 0f;
     private static final float INPUT_STANDARD_DEVIATION = 255f;
     private static final float CONFIDENCE_THRESHOLD = 0.1f;
     private static final float IOU_THRESHOLD = 0.5f;
-    float scale = 0f;
-    int zeroPoint = 0;
+
     private static final DataType INPUT_IMAGE_TYPE = DataType.UINT8;
     private static final DataType OUTPUT_IMAGE_TYPE = DataType.UINT8;
-    MetadataExtractor.QuantizationParams inputQuantizeParam = new MetadataExtractor.QuantizationParams(0.003921568859368563f, 0);
-//    MetadataExtractor.QuantizationParams outputQuantizeParam = new MetadataExtractor.QuantizationParams(0.00739737693220377f, 2);
-MetadataExtractor.QuantizationParams outputQuantizeParam = new MetadataExtractor.QuantizationParams(0.006305381190031767f, 5);
 
     public ImageModel(Context context, String modelPath, String labelPath) throws IOException {
         labels = new ArrayList<>();
@@ -80,20 +80,34 @@ MetadataExtractor.QuantizationParams outputQuantizeParam = new MetadataExtractor
         int[] inputShape = interpreter.getInputTensor(0).shape();
         int[] outputShape = interpreter.getOutputTensor(0).shape();
 
+        // 320
         tensorWidth = inputShape[1];
+
+        // 320
         tensorHeight = inputShape[2];
+
+        // this is 6300
         numElements = outputShape[1];
+
+        // this is 85
         numChannel = outputShape[2];
 
         Tensor outputTensor = interpreter.getOutputTensor(0);
         DataType dtype = outputTensor.dataType();
+
+        // the output params
         Tensor.QuantizationParams qParams = outputTensor.quantizationParams();
-        Log.i(TAG, "Output datatype: " + dtype);
-        Log.i(TAG, "Output scale: " + qParams.getScale() + ", zeroPoint: " + qParams.getZeroPoint());
-        Tensor.QuantizationParams iparam = interpreter.getInputTensor(0).quantizationParams();
-        Log.i(TAG, "Input scale: " + iparam.getScale() + ", zerepoint: " + iparam.getZeroPoint());
         scale = qParams.getScale();
         zeroPoint = qParams.getZeroPoint();
+
+        // logs
+        Log.i(TAG, "Output datatype: " + dtype);
+        Log.i(TAG, "Output scale: " + qParams.getScale() + ", zeroPoint: " + qParams.getZeroPoint());
+        // input params
+        Tensor.QuantizationParams iparam = interpreter.getInputTensor(0).quantizationParams();
+        Log.i(TAG, "Input scale: " + iparam.getScale() + ", zerepoint: " + iparam.getZeroPoint());
+
+        // get the labels.txt and add them to the array list
         try (InputStream inputStream = context.getAssets().open(labelPath)) {
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
             String line = bufferedReader.readLine();
@@ -104,6 +118,9 @@ MetadataExtractor.QuantizationParams outputQuantizeParam = new MetadataExtractor
             bufferedReader.close();
         }
     }
+
+    // the interface that will be returned (buffer and the bitmap)
+    // the returned resized bitmap is just for viewing purposes only
     public class ResizeResult {
         public ByteBuffer buffer;
         public Bitmap resizedBitmap;
@@ -113,18 +130,21 @@ MetadataExtractor.QuantizationParams outputQuantizeParam = new MetadataExtractor
             this.resizedBitmap = resizedBitmap;
         }
     }
+
+    // resize the image to fit in the interpreter model
     public ResizeResult resize(Bitmap bitmap) {
-        // Create separate processor for just resizing (for display)
+        TensorImage tensorImage = new TensorImage(INPUT_IMAGE_TYPE);
+        tensorImage.load(bitmap);
+        TensorImage processedImage = imageProcessor.process(tensorImage);
+
+        // this is just for displaying resized bitmap
         ImageProcessor resizeOnlyProcessor = new ImageProcessor.Builder()
                 .add(new ResizeOp(320, 320, ResizeOp.ResizeMethod.BILINEAR))
                 .build();
-
-        TensorImage tensorImage = new TensorImage(INPUT_IMAGE_TYPE);
-        tensorImage.load(bitmap);
         TensorImage resizedImage = resizeOnlyProcessor.process(tensorImage);
         Bitmap displayBitmap = resizedImage.getBitmap();
 
-        TensorImage processedImage = imageProcessor.process(tensorImage);
+
         return new ResizeResult(processedImage.getBuffer(), displayBitmap);
 
     }
@@ -133,78 +153,73 @@ MetadataExtractor.QuantizationParams outputQuantizeParam = new MetadataExtractor
 
         int BITMAP_WIDTH = bitmap.getWidth();
         int BITMAP_HEIGHT = bitmap.getHeight();
-        Log.i(TAG, "Model expects: " + tensorWidth + "x" + tensorHeight);
-        Log.i(TAG, "Bitmap size: " + BITMAP_WIDTH + "x" + BITMAP_HEIGHT);
-        Log.i(TAG, "Expected buffer size: " + (tensorWidth * tensorHeight * 3)); // RGB channels
+
         imageProcessor = new ImageProcessor.Builder()
                 .add(new ResizeOp(320, 320, ResizeOp.ResizeMethod.BILINEAR))
                 .add(new NormalizeOp(0, 255))
+                //THIS IS uint8
                 .add(new CastOp(INPUT_IMAGE_TYPE))
                 .build();
+
         ResizeResult elements = resize(bitmap);
-        Log.w(TAG, "NumElement: " + numElements + " numChannel: " + numChannel);
+
         TensorBuffer output = TensorBuffer.createFixedSize(
+                //this is {1, 6300, 85}
                 new int[]{1, numElements, numChannel},
+                // this is uint8
                 OUTPUT_IMAGE_TYPE
         );
-
-
         interpreter.run(elements.buffer, output.getBuffer());
+
         TensorProcessor tensorProcessor = new TensorProcessor.Builder()
-                .add(new DequantizeOp(outputQuantizeParam.getZeroPoint(), outputQuantizeParam.getScale()))
+                .add(new DequantizeOp(zeroPoint, scale))
                 .build();
         output = tensorProcessor.process(output);
 
-        // [x, y, w, h, confidence, class1, class2, class3...]
-        // THERE ARE PROBALBLY FCKING 600K ROWS HERE (NUMCHANNEL * NUMELEMENT)
-        // so every 85th index indicates a new object
+        // I believe the prediction results would shape like:
+        // [x, y, w, h, confidence (or objectness), class1, class2, class3...]
         float[] predictions = output.getFloatArray();
+
+        // store here all the detected objects with high confidence
         List<DetectionResult> detectionResults = new ArrayList<>();
 
         for (int i = 0; i < numElements; i++) {
-            int confidentScoreIndex = 4;
+
+            // offset since the prediction array is flattened
             int offset = i * numChannel;
             float x = predictions[offset] * BITMAP_WIDTH;
             float y = predictions[offset + 1] * BITMAP_HEIGHT;
             float w = predictions[offset + 2] * BITMAP_WIDTH;
             float h = predictions[offset + 3] * BITMAP_HEIGHT;
-            float confidence = predictions[offset + 4];
 
+
+            // get the regions
             int left = (int) Math.max(0, (x - w / 2));
             int top = (int) Math.max(0, (y - h / 2));
-            int right = (int) Math.max(BITMAP_WIDTH, (x + w / 2.));
-            int bottom = (int) Math.max(BITMAP_HEIGHT, (y + h / 2.));
-//            float objectness = (predictions[offset + 4] - zeroPoint) * scale;
+            int right = (int) Math.min(320, (x + w / 2.));
+            int bottom = (int) Math.min(320, (y + h / 2.));
 
-            /** copy all the confident scores of the object of a single detection
-             * why +5? the first 4 are x y w h, the 5th starts the object..
-             * so From there until the end of the detection (e.g 5 + 85 upto 85 + 85 would be 90 -> 170)
-             */
             float[] classScores = Arrays.copyOfRange(predictions, 5 + offset, numChannel + offset);
 
+            // find the label of the highest interval
             float maxClassScore = -1f;
             int labelId = 0;
             for (int j = 0; j < classScores.length; j++) {
-                float individual_objectness = (classScores[j] - zeroPoint) * scale;
-                if (individual_objectness > maxClassScore) {
-                    maxClassScore = individual_objectness;
+                if (classScores[j] > maxClassScore) {
+                    maxClassScore = classScores[j];
                     labelId = j;
                 }
             }
-//            Log.i(TAG, "raw x,y,w,h: " + predictions[offset] + "," +
-//                    predictions[offset+1] + "," +
-//                    predictions[offset+2] + "," +
-//                    predictions[offset+3]);
-//            Log.w(TAG, "x: " + x + " y: " + y + " w: " + w + " h: " + h + " label: " + labels.get(labelId) + " confidence: " + confidence);
-            if (confidence > 0.0){
-                Log.w(TAG+ " Confi", labels.get(labelId) + " confidence: " + confidence);
 
-            }
 
-            if (confidence > CONFIDENCE_THRESHOLD) {
+            float confidence = predictions[offset + 4];
+            float finalConfidence = confidence;
+
+
+            // check if the confidence  is high then put it in the results list
+            if (finalConfidence > CONFIDENCE_THRESHOLD) {
                 Log.w(TAG, "x: " + x + " y: " + y + " w: " + w + " h: " + h + " label: " + labels.get(labelId) + " confidence: " + confidence);
-
-                detectionResults.add(new DetectionResult(labelId, confidence, left, top, right, bottom, labels.get(labelId)));
+                detectionResults.add(new DetectionResult(labelId, finalConfidence, left, top, right, bottom, labels.get(labelId)));
             }
         }
 
