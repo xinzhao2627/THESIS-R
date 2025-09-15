@@ -1,4 +1,4 @@
-package com.example.explicitapp3;
+package com.example.explicitapp3.Types;
 
 public class DetectionResult {
     public int classId;

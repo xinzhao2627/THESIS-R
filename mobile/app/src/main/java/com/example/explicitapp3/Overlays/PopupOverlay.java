@@ -1,4 +1,4 @@
-package com.example.explicitapp3;
+package com.example.explicitapp3.Overlays;
 
 import android.content.Context;
 import android.content.Intent;
@@ -10,13 +10,16 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 
+import com.example.explicitapp3.R;
+import com.example.explicitapp3.Detectors.DistilBERT_Detector;
+
 public class PopupOverlay {
 
-    public PopupOverlay(LayoutInflater lf, String TAG, TextModel textModel, Context mcontext, WindowManager wm) {
+    public PopupOverlay(LayoutInflater lf, String TAG, DistilBERT_Detector distilBERTDetector, Context mcontext, WindowManager wm) {
         View view = lf.inflate(R.layout.activity_overlay, null);
         Button b = view.findViewById(R.id.tohomescreenButton);
-        if (textModel != null) {
-            textModel.setView(view);
+        if (distilBERTDetector != null) {
+            distilBERTDetector.setView(view);
         }
         b.setOnClickListener(new View.OnClickListener() {
             @Override

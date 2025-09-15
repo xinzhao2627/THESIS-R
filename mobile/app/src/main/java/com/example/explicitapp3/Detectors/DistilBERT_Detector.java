@@ -1,4 +1,4 @@
-package com.example.explicitapp3;
+package com.example.explicitapp3.Detectors;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -39,7 +39,7 @@ import java.util.List;
  * @version 1.0
  * @since 9/11/25
  */
-public class TextModel {
+public class DistilBERT_Detector {
     private static final String TAG = "TextModel";
 
     /**
@@ -59,7 +59,7 @@ public class TextModel {
         initTextModel(getApplicationContext(), "assets/path/to/model.tflite")
         }</pre></p>
      */
-    public  TextModel(Context context, String textModelName) throws IOException {
+    public DistilBERT_Detector(Context context, String textModelName) throws IOException {
         this.mcontext = context;
         BertNLClassifier.BertNLClassifierOptions options = BertNLClassifier.BertNLClassifierOptions.builder().build();
 
@@ -99,7 +99,7 @@ public class TextModel {
                 text.append(" ").append(textBlock.getValue());
             }
             String ftext = text.toString().trim();
-            Log.w(TAG, "textRecognition: TEXT IS: " + ftext);
+//            Log.w(TAG, "textRecognition: TEXT IS: " + ftext);
 
             analyzeText(ftext);
             textRecognizer.release();
@@ -153,7 +153,7 @@ public class TextModel {
             String label = result.getLabel();
             float score = result.getScore();
             isblocked = label.equals("NSFW") && score >= CONFIDENCE_THRESHOLD || isblocked;
-            Log.i(TAG, "Text Classification - Label: " + label + ", Score: " + score);
+//            Log.i(TAG, "Text Classification - Label: " + label + ", Score: " + score);
         }
         return isblocked;
     }

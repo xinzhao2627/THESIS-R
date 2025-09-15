@@ -1,23 +1,13 @@
 package com.example.explicitapp3;
 
 import android.app.Activity;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.hardware.display.DisplayManager;
-import android.hardware.display.VirtualDisplay;
-import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Parcelable;
 import android.provider.Settings;
 import android.util.Log;
-import android.view.Surface;
-import android.view.SurfaceView;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -29,6 +19,8 @@ import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
+import com.example.explicitapp3.Overlays.OverlayService;
 
 public class MainActivity extends AppCompatActivity {
     Button runAppButton;

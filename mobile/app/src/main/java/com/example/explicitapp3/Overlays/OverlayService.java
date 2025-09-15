@@ -1,42 +1,24 @@
-package com.example.explicitapp3;
+package com.example.explicitapp3.Overlays;
 
 
 import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
-import android.graphics.Bitmap;
-import android.graphics.ImageFormat;
-import android.graphics.PixelFormat;
-import android.hardware.display.DisplayManager;
-import android.hardware.display.VirtualDisplay;
-import android.media.Image;
-import android.media.ImageReader;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
-import android.os.Build;
-import android.os.Handler;
 import android.os.IBinder;
-import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
-import android.view.Surface;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
-import android.view.View;
 import android.view.WindowManager;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 
-import com.example.explicitapp3.OverlayFunctions.*;
+import com.example.explicitapp3.MainActivity;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
+
 /**
  * OverlayService is a foreground service that came from the main activity.
  * This service runs continuously /silently in the background to capture
@@ -127,6 +109,8 @@ public class OverlayService extends Service {
             }
             overlayFunctions.setupToggleableOverlay(
                     (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE)
+            );
+            overlayFunctions.setupDynamicOverlay(                    (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE)
             );
             overlayFunctions.setupOverlayScreenshot();
         }

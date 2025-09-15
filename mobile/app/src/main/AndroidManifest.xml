@@ -27,9 +27,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
+        <profileable android:shell="true" />
         <service
-            android:name=".OverlayService"
+            android:name=".Overlays.OverlayService"
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />
         <meta-data

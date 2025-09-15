@@ -1,12 +1,6 @@
-package com.example.explicitapp3;
-
-import static android.content.Context.WINDOW_SERVICE;
-import static androidx.appcompat.content.res.AppCompatResources.getDrawable;
-import static androidx.core.content.ContextCompat.getSystemService;
+package com.example.explicitapp3.Overlays;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.ActivityManager;
 import android.app.Notification;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -14,14 +8,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
-import android.graphics.SurfaceTexture;
-import android.graphics.drawable.Drawable;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.Image;
@@ -29,30 +20,29 @@ import android.media.ImageReader;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.WindowMetrics;
-import android.widget.Button;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
+import com.example.explicitapp3.Detectors.ImageModel;
+import com.example.explicitapp3.Detectors.YoloV10Detector;
+import com.example.explicitapp3.NotificationHelper;
+import com.example.explicitapp3.Detectors.DistilBERT_Detector;
+import com.example.explicitapp3.Types.ClassifyResults;
 
 import org.tensorflow.lite.Interpreter;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.util.List;
 
 public class OverlayFunctions {
     private MediaProjectionManager mediaProjectionManager;
@@ -70,8 +60,9 @@ public class OverlayFunctions {
     ImageReader imageReader;
     Handler handler;
     HandlerThread handlerThread;
-    TextModel textModel;
+    DistilBERT_Detector distilBERTDetector;
     ImageModel imageModel;
+    YoloV10Detector yoloV10Detector;
     PopupOverlay popupOverlay;
     DynamicOverlay dynamicOverlay;
     private static final String TAG = "OverlayFunctions";
@@ -123,7 +114,7 @@ public class OverlayFunctions {
      * @return The created notification instance
      * @throws IOException If text model initialization fails
      * @see NotificationHelper#createNotificationChannel(Context)
-     * @see TextModel(Context, String)
+     * @see DistilBERT_Detector (Context, String)
      */
     public Notification setNotification(Context context) throws IOException {
         NotificationHelper.createNotificationChannel(context);
@@ -140,10 +131,10 @@ public class OverlayFunctions {
      * @apiNote Currently uses the exported NSFW model with metadata
      */
     public void initModel() throws IOException {
-        textModel = new TextModel(mcontext, "exporter_model/exporter_nsfw_model_metadata.tflite");
+        distilBERTDetector = new DistilBERT_Detector(mcontext, "exporter_model/exporter_nsfw_model_metadata.tflite");
 //        imageModel = new ImageModel(mcontext, "exporter_model_image/yolov5s_model.tflite", "exporter_model_image/labels.txt");
         imageModel = new ImageModel(mcontext, "trial_model/yolov5.tflite", "trial_model/labels.txt");
-
+        yoloV10Detector = new YoloV10Detector(mcontext);
     }
 
     /**
@@ -217,6 +208,21 @@ public class OverlayFunctions {
 //        popupOverlay = new PopupOverlay(lf, TAG, textModel, mcontext, wm);
     }
 
+    public void setupDynamicOverlay(LayoutInflater lf) {
+        dynamicOverlay = new DynamicOverlay(mcontext);
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                PixelFormat.TRANSLUCENT
+        );
+        wm.addView(dynamicOverlay, params);
+    }
+
+
+
     /**
      *  Creates boxes as overlay (no popup) when there are nsfw contents detected
      *
@@ -237,7 +243,7 @@ public class OverlayFunctions {
      * @throws RuntimeException If ImageReader setup fails or background thread cannot be created
      * @see ImageReader#newInstance(int, int, int, int)
      * @see #imageToBitmap(Image)
-     * @see TextModel#textRecognition(Bitmap)
+     * @see DistilBERT_Detector#textRecognition(Bitmap)
      */
     @SuppressLint("ClickableViewAccessibility")
     public void setupOverlayScreenshot() {
@@ -261,18 +267,25 @@ public class OverlayFunctions {
                     Bitmap bitmap = imageToBitmap(image);
 
                     // For image model:
-                    ClassifyResults res = imageModel.classify(bitmap);
-                    imageModel.drawBoxes(bitmap, res.detectionResults);
+//                    ClassifyResults res = imageModel.classify(bitmap);
+//                    imageModel.drawBoxes(bitmap, res.detectionResults);
+                    ClassifyResults res = yoloV10Detector.detect(bitmap);
+                    Bitmap abm = yoloV10Detector.drawBoxes(bitmap, res.detectionResults);
 
                     // For textModel:
-                    textModel.textRecognition(bitmap);
+                    distilBERTDetector.textRecognition(bitmap);
 
 
-
+                    // display the boxes in overlay
+                    if (dynamicOverlay != null) {
+                        new Handler(mcontext.getMainLooper()).post(() -> {
+                            dynamicOverlay.setResults(res.detectionResults);
+                        });
+                    }
                     // OPTIONAL (SAVE TO GALLERY)
 //                    saveToGalleryBitmap(bitmap);
-                    saveToGalleryBitmap(res.resized_bitmap);
-
+//                    saveToGalleryBitmap(res.resized_bitmap);
+                    saveToGalleryBitmap(abm);
                     image.close();
                     bitmap.recycle();
 
@@ -316,14 +329,9 @@ public class OverlayFunctions {
     public void saveToGalleryBitmap(Bitmap bitmap) {
         // can configure the bitmap here
         if (bitmap != null) {
-            // save to gallery
-            Bitmap res = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.ARGB_8888);
-            Canvas canvas = new Canvas(res);
-            Paint paint = new Paint();
-            paint.setColorFilter(new PorterDuffColorFilter(0x55FF0000, PorterDuff.Mode.SRC_IN));
-            canvas.drawBitmap(res, 0, 0, paint);
 
             try {
+                // you need content resolver in android 15
                 ContentResolver resolver = mcontext.getContentResolver();
                 ContentValues contentValues = new ContentValues();
                 contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, "as_screenshot_" + System.currentTimeMillis());
@@ -342,10 +350,7 @@ public class OverlayFunctions {
             } catch (IOException e) {
                 Log.e(TAG, "onSurfaceTextureUpdated: IOError " + e.getMessage());
                 throw new RuntimeException(e);
-            } finally {
-                res.recycle();
             }
-
         }
     }
 
@@ -374,7 +379,7 @@ public class OverlayFunctions {
      * @apiNote This method is safe to call multiple times
      * @see #stopScreenCapture()
      * @see HandlerThread#quitSafely()
-     * @see TextModel#cleanup()
+     * @see DistilBERT_Detector#cleanup()
      */
     public void destroy() {
         stopScreenCapture();
@@ -401,9 +406,9 @@ public class OverlayFunctions {
             imageReader.close();
             imageReader = null;
         }
-        if (textModel != null) {
-            textModel.cleanup();
-            textModel = null;
+        if (distilBERTDetector != null) {
+            distilBERTDetector.cleanup();
+            distilBERTDetector = null;
         }
 
     }

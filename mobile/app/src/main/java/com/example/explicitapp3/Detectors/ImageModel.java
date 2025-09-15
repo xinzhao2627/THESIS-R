@@ -1,14 +1,18 @@
-package com.example.explicitapp3;
+package com.example.explicitapp3.Detectors;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.util.Log;
+
+import com.example.explicitapp3.Types.ClassifyResults;
+import com.example.explicitapp3.Types.DetectionResult;
+import com.example.explicitapp3.MainActivity;
+import com.example.explicitapp3.Types.ResizeResult;
 
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.Interpreter;
@@ -18,11 +22,9 @@ import org.tensorflow.lite.support.common.TensorProcessor;
 import org.tensorflow.lite.support.common.ops.CastOp;
 import org.tensorflow.lite.support.common.ops.DequantizeOp;
 import org.tensorflow.lite.support.common.ops.NormalizeOp;
-import org.tensorflow.lite.support.common.ops.QuantizeOp;
 import org.tensorflow.lite.support.image.ImageProcessor;
 import org.tensorflow.lite.support.image.TensorImage;
 import org.tensorflow.lite.support.image.ops.ResizeOp;
-import org.tensorflow.lite.support.metadata.MetadataExtractor;
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
 
 import java.io.BufferedReader;
@@ -30,7 +32,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -121,15 +122,7 @@ public class ImageModel {
 
     // the interface that will be returned (buffer and the bitmap)
     // the returned resized bitmap is just for viewing purposes only
-    public class ResizeResult {
-        public ByteBuffer buffer;
-        public Bitmap resizedBitmap;
 
-        public ResizeResult(ByteBuffer buffer, Bitmap resizedBitmap) {
-            this.buffer = buffer;
-            this.resizedBitmap = resizedBitmap;
-        }
-    }
 
     // resize the image to fit in the interpreter model
     public ResizeResult resize(Bitmap bitmap) {
@@ -162,7 +155,7 @@ public class ImageModel {
                 .build();
 
         ResizeResult elements = resize(bitmap);
-
+        // why ditch v5? because it has different numchannels  and numelements output
         TensorBuffer output = TensorBuffer.createFixedSize(
                 //this is {1, 6300, 85}
                 new int[]{1, numElements, numChannel},

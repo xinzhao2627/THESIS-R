@@ -1,12 +1,12 @@
-package com.example.explicitapp3;
+package com.example.explicitapp3.Types;
 
 import android.graphics.Bitmap;
 
 import java.util.List;
 
 public class ClassifyResults {
-    Bitmap resized_bitmap;
-    List<DetectionResult> detectionResults;
+    public Bitmap resized_bitmap;
+    public List<DetectionResult> detectionResults;
 
     public ClassifyResults(Bitmap bitmap, List<DetectionResult> detectionResultList){
         resized_bitmap = bitmap;
