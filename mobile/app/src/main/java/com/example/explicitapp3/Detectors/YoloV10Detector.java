@@ -15,8 +15,6 @@ import com.example.explicitapp3.Types.ResizeResult;
 
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.Interpreter;
-import org.tensorflow.lite.gpu.GpuDelegate;
-import org.tensorflow.lite.DelegateFactory;
 import org.tensorflow.lite.support.common.FileUtil;
 import org.tensorflow.lite.support.common.ops.CastOp;
 import org.tensorflow.lite.support.common.ops.NormalizeOp;
@@ -32,6 +30,9 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.tensorflow.lite.gpu.CompatibilityList;
+import org.tensorflow.lite.gpu.GpuDelegate;
+
 // The total time complexity of this class is:
 //
 public class YoloV10Detector {
@@ -44,7 +45,6 @@ public class YoloV10Detector {
     private static final float CONFIDENCE_THRESHOLD = 0.4f;
 
     List<String> labels;
-
     Interpreter interpreter;
     int tensorWidth = 0;
     int tensorHeight = 0;
@@ -54,20 +54,20 @@ public class YoloV10Detector {
     ImageProcessor imageProcessor;
 
     /*
-    * The final time complexity of YoloV10Detector is:
-    * = O(L + R + B + D)
-    * = O(R + B) since L < N | L < B && D < N | D < B
-    * = O((w * h) + N)
-    *
-    * Where:
-    * N = numElements
-    * h = tensorHeight
-    * w = tensorWidth
-    * B = detect() func
-    * L = YoloV10Detector() func
-    * D = drawBoxes() func
-    * R = resize() func
-    * */
+     * The final time complexity of YoloV10Detector is:
+     * = O(L + R + B + D)
+     * = O(R + B) since L < N | L < B && D < N | D < B
+     * = O((w * h) + N)
+     *
+     * Where:
+     * N = numElements
+     * h = tensorHeight
+     * w = tensorWidth
+     * B = detect() func
+     * L = YoloV10Detector() func
+     * D = drawBoxes() func
+     * R = resize() func
+     * */
 
     // this is O(L) where L is the set of labels
     // but L is guaranteed to be less than the time complexity of resize()
@@ -84,10 +84,18 @@ public class YoloV10Detector {
 
         ByteBuffer model = FileUtil.loadMappedFile(context, MODEL_PATH);
         Interpreter.Options options = new Interpreter.Options();
-
-//        options.setNumThreads(4);
-        Log.w(TAG, "available processors: "+Runtime.getRuntime().availableProcessors() );
-        options.setNumThreads(Runtime.getRuntime().availableProcessors());
+        CompatibilityList compatibilityList = new CompatibilityList();
+        if (compatibilityList.isDelegateSupportedOnThisDevice()) {
+            Log.w(TAG, "GPU SUPPORTED" );
+            GpuDelegate.Options delegateOptions = compatibilityList.getBestOptionsForThisDevice();
+            GpuDelegate gpuDelegate = new GpuDelegate(delegateOptions);
+            options.addDelegate(gpuDelegate);
+        } else {
+            //        options.setNumThreads(4);
+            Log.w(TAG, "GPU NOT SUPPORTED" );
+            Log.w(TAG, "available processors: " + Runtime.getRuntime().availableProcessors());
+            options.setNumThreads(Runtime.getRuntime().availableProcessors());
+        }
 
 
         interpreter = new Interpreter(model, options);
@@ -172,13 +180,13 @@ public class YoloV10Detector {
         return new ClassifyResults(resizeResult.resizedBitmap, detectionResultList);
 
 
-
     }
 
 
     // O(N) = B
     // N = loop of numElements, usually between 3 to 3 digits
     public List<DetectionResult> getBoundsList(Bitmap bitmap, float[] predictions) {
+        Log.w(TAG, "getBoundsList: getting bounds" );
         long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 
         List<DetectionResult> detectionResults = new ArrayList<>();
@@ -194,11 +202,12 @@ public class YoloV10Detector {
 
                 int labelId = (int) predictions[offset + 5];
                 String label = labels.get(labelId);
-//                Log.w(TAG, "label: " + label + " confidence: " + confidence);
+                Log.w(TAG, "label: " + label + " confidence: " + confidence);
                 detectionResults.add(new DetectionResult(
                         labelId, confidence,
                         x, y, w, h,
-                        label
+                        label,
+                        0
                 ));
             }
         }
@@ -243,4 +252,17 @@ public class YoloV10Detector {
         return mutableBitmap;
     }
 
+    public void cleanup() {
+        if (interpreter != null) {
+            interpreter.close();
+            interpreter = null;
+        }
+
+        if (labels != null) {
+            labels.clear();
+            labels = null;
+        }
+
+        imageProcessor = null;
+    }
 }

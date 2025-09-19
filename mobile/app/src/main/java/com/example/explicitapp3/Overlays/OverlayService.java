@@ -77,6 +77,13 @@ public class OverlayService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && "STOP_SERVICE".equals(intent.getAction())){
+            Log.w(TAG, "Stop command received, shutting down service");
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+
+
         int rc = intent.getIntExtra("resultCode", -1);
         Intent d = intent.getParcelableExtra("data");
         Log.w(TAG, "onStartCommand: Media projection will now start capturing");
@@ -85,34 +92,21 @@ public class OverlayService extends Service {
             mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
             wm = (WindowManager) getSystemService(WINDOW_SERVICE);
             if (overlayFunctions == null) overlayFunctions = new OverlayFunctions();
-
-            overlayFunctions.setWindowManager(wm);
-            overlayFunctions.setMediaProjectionManager(mediaProjectionManager);
-            overlayFunctions.setDpi(getResources().getDisplayMetrics().densityDpi);
             try {
                 notification = overlayFunctions.setNotification(getApplicationContext());
-
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
             startForeground(SERVICE_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
-
-            if (mediaProjection == null) {
-                mediaProjection = mediaProjectionManager.getMediaProjection(rc, d);
-                overlayFunctions.setMediaProjection(mediaProjection);
-            }
-
             try {
                 overlayFunctions.initModel();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            overlayFunctions.setupToggleableOverlay(
-                    (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE)
-            );
-            overlayFunctions.setupDynamicOverlay(                    (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE)
-            );
-            overlayFunctions.setupOverlayScreenshot();
+            if (mediaProjection == null) {
+                mediaProjection = mediaProjectionManager.getMediaProjection(rc, d);
+                overlayFunctions.setup(wm, getResources().getDisplayMetrics().densityDpi, mediaProjection, mediaProjectionManager);
+            }
         }
 
         return START_STICKY;
@@ -121,8 +115,16 @@ public class OverlayService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        //
-        overlayFunctions.destroy();
+
+        if (overlayFunctions != null){
+            overlayFunctions.destroy();
+            overlayFunctions = null;
+        }
+
+        if (mediaProjection != null) {
+            mediaProjection.stop();
+            mediaProjection = null;
+        }
     }
 
     @Nullable

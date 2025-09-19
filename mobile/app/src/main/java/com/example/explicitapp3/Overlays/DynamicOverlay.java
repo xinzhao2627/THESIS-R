@@ -75,24 +75,35 @@ public class DynamicOverlay extends View{
         int padding = 5;
 
         for (DetectionResult dr : detectionResultList) {
-            float l = dr.left * getWidth() - padding;
-            float t = dr.top * getHeight() - padding;
-            float r = dr.right * getWidth() + padding;
-            float b = dr.bottom * getHeight() + padding;
+            float l = 0f - padding;
+            float t = 0f - padding;
+            float r = 0f + padding;
+            float b = 0f + padding;
 
-//            Log.w(TAG, "left: " + l + " top: " + t + " right: " + r + " bottom: " + b);
+            if (dr.modelType == 0){
+                l += dr.left * getWidth();
+                t += dr.top * getHeight();
+                r += dr.right * getWidth();
+                b += dr.bottom * getHeight();
+            } else {
+                l += dr.left;
+                t += dr.top;
+                r += dr.right;
+                b += dr.bottom;
+            }
 
             RectF rectF = new RectF(l, t, r, b);
 
             drawBlur(canvas,rectF);
             canvas.drawRect(rectF, paint);
 
-            String tt = dr.label + " " + String.format("%.2f", dr.confidence);
+            String tt = dr.modelType == 0? dr.label + " " + String.format("%.2f", dr.confidence) : ".";
             canvas.drawText(tt, rectF.left, rectF.top, textPaint);
         }
     }
 
     private void drawBlur(Canvas canvas, RectF rectF){
+
         // Simple overlay blur
         Paint overlayPaint = new Paint();
         overlayPaint.setColor(Color.BLACK);

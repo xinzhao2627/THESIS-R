@@ -212,7 +212,7 @@ public class ImageModel {
             // check if the confidence  is high then put it in the results list
             if (finalConfidence > CONFIDENCE_THRESHOLD) {
                 Log.w(TAG, "x: " + x + " y: " + y + " w: " + w + " h: " + h + " label: " + labels.get(labelId) + " confidence: " + confidence);
-                detectionResults.add(new DetectionResult(labelId, finalConfidence, left, top, right, bottom, labels.get(labelId)));
+                detectionResults.add(new DetectionResult(labelId, finalConfidence, left, top, right, bottom, labels.get(labelId), 0));
             }
         }
 

@@ -29,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
     ActivityResultLauncher<Intent> overlayPermissionLauncher;
     ActivityResultLauncher<Intent> mediaProjectionLauncher;
     public static final String TAG = "MainActivity";
+    boolean isServiceRunning = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -118,6 +119,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.d(TAG, "running...");
 
                     ContextCompat.startForegroundService(this, serviceIntent);
+                    isServiceRunning = true;
                     runAppButton.setText("Stop");
                 } catch (RuntimeException e) {
                     Log.w(TAG, "onCreate: Error on MediaProjectionInstance " + e.getMessage());
@@ -131,14 +133,28 @@ public class MainActivity extends AppCompatActivity {
 
         runAppButton.setOnClickListener((l) -> {
             if (Settings.canDrawOverlays(this)) {
+                if (isServiceRunning) {
+                    stopOverlayService();
+                } else {
+                    Intent i = mediaProjectionManager.createScreenCaptureIntent();
+                    mediaProjectionLauncher.launch(i);
+                }
 
-                Intent i = mediaProjectionManager.createScreenCaptureIntent();
-                mediaProjectionLauncher.launch(i);
 
             } else {
                 Toast.makeText(this, "Please enable overlay permission", Toast.LENGTH_SHORT).show();
             }
         });
+
+    }
+    private void stopOverlayService(){
+        Intent serviceIntent = new Intent(this, OverlayService.class);
+        serviceIntent.setAction("STOP_SERVICE");
+        startService(serviceIntent);
+
+        isServiceRunning = false;
+        runAppButton.setText("Start");
+
     }
 
 

@@ -63,15 +63,28 @@ dependencies {
     debugImplementation(libs.ui.tooling)
     debugImplementation(libs.ui.test.manifest)
 
-    implementation("org.tensorflow:tensorflow-lite:2.14.0")
+
+//    runtimeOnly("com.google.ai.edge.litert:litert:1.4.0")
+//    runtimeOnly("com.google.ai.edge.litert:litert-support:1.4.0")
+//    implementation("org.tensorflow:tensorflow-lite-task-text:0.4.4")
+//    implementation("com.google.ai.edge.litert:litert-metadata:1.4.0")
+//    implementation("com.google.ai.edge.litert:litert-gpu:1.4.0")
+//    implementation("com.google.ai.edge.litert:litert-gpu-api:1.4.0")
+//    runtimeOnly("org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.4")
+
+//    implementation("org.tensorflow:tensorflow-lite-metadata:0.4.4")
+//    implementation(libs.tensorflow.lite)
+//    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
+
+    implementation("org.tensorflow:tensorflow-lite:2.16.1")
     implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
-    implementation("org.tensorflow:tensorflow-lite-gpu:2.14.0")
-    implementation("org.tensorflow:tensorflow-lite-task-text:0.4.4")
     implementation("org.tensorflow:tensorflow-lite-metadata:0.4.4")
-    implementation("org.tensorflow:tensorflow-lite-gpu-api:2.17.0")
-
-
-
-//    implementation (libs.api)
-//    implementation (libs.tokenizers)
+    implementation("org.tensorflow:tensorflow-lite-task-text:0.4.4")
+    implementation("org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.4")
+    implementation("org.tensorflow:tensorflow-lite-gpu-api:2.16.1")
+    implementation("org.tensorflow:tensorflow-lite-api:2.16.1")
+    implementation("org.tensorflow:tensorflow-lite-gpu:2.16.1")
+    implementation("org.tensorflow:tensorflow-lite-select-tf-ops:2.16.1")
+    implementation ("eu.bolt:screenshotty:1.0.4")
+    
 }
