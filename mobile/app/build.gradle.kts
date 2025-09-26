@@ -86,5 +86,16 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite-gpu:2.16.1")
     implementation("org.tensorflow:tensorflow-lite-select-tf-ops:2.16.1")
     implementation ("eu.bolt:screenshotty:1.0.4")
-    
+
+    // ui
+//    implementation ("androidx.compose.material3:material3:1.3.2")
+//    implementation ("androidx.compose.material3:material3-window-size-class:1.3.2")
+//    implementation ("androidx.compose.material3:material3-adaptive-navigation-suite:1.5.0-alpha04")
+    implementation ("com.google.android.flexbox:flexbox:3.0.0")
+
+    implementation("ai.djl:api:0.34.0")
+    implementation("ai.djl.huggingface:tokenizers:0.34.0")
+    implementation("ai.djl.tensorflow:tensorflow-engine:0.34.0")
+//    runtimeOnly("ai.djl.tensorflow:tensorflow-native-auto:0.25.0")
+
 }

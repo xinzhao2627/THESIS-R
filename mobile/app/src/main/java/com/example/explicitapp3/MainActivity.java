@@ -3,6 +3,7 @@ package com.example.explicitapp3;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -22,14 +23,45 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.explicitapp3.Overlays.OverlayService;
 
+import java.util.ArrayList;
+
 public class MainActivity extends AppCompatActivity {
+    public static final String YOLO_V10_F16_MODEL = "yolov10_16/yolov10n_float16.tflite";
+    public static final String YOLO_V10_F16_LABELS = "yolov10_16/labels.txt";
+
+    public static final String YOLO_V10_F32_MODEL = "yolov10_32/yolov10n_float32.tflite";
+    public static final String YOLO_V10_F32_LABELS = "yolov10_32/labels.txt";
+
+    public static final String DistilBert_Tagalog_MODEL = "distilbert_tagalog/distilbert_tagalog_classification_model.tflite";
+    public static final String xtremedistil_MODEL = "xtremedisti/xtremedistil_nsfw_safe_model.tflite";
+    public static final String dost_robert_MODEL = "dost_robert/nsfw_model.tflite";
+    public static final String xlm_roberta_MODEL = "xlm_roberta/xlm_roberta_classification_model.tflite";
+    public static final String roberta_tagalog_MODEL = "roberta_tagalog/roberta_tagalog_nsfw_model.tflite";
+
+
+    String chosen_text_model = "";
+    String[] chosen_image_model = {"", ""};
+
     Button runAppButton;
     Button overlayPermissionButton;
+
+    Button textModel1;
+    Button textModel2;
+    Button textModel3;
+    Button textModel4;
+    Button textModel5;
+    ArrayList<Button> textButtons;
+
+    Button imageModel1;
+    Button imageModel2;
+    ArrayList<Button> imageButtons;
+
     MediaProjectionManager mediaProjectionManager;
     ActivityResultLauncher<Intent> overlayPermissionLauncher;
     ActivityResultLauncher<Intent> mediaProjectionLauncher;
     public static final String TAG = "MainActivity";
     boolean isServiceRunning = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,6 +72,31 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        imageButtons = new ArrayList<>();
+        textButtons = new ArrayList<>();
+
+
+        textModel1 = findViewById(R.id.textmodelButton1);
+        textButtons.add(textModel1);
+
+        textModel2 = findViewById(R.id.textmodelButton2);
+        textButtons.add(textModel2);
+
+        textModel3 = findViewById(R.id.textmodelButton3);
+        textButtons.add(textModel3);
+
+        textModel4 = findViewById(R.id.textmodelButton4);
+        textButtons.add(textModel4);
+
+        textModel5 = findViewById(R.id.textmodelButton5);
+        textButtons.add(textModel5);
+
+        imageModel1 = findViewById(R.id.imagemodelButton1);
+        imageModel2 = findViewById(R.id.imagemodelButton2);
+
+        imageButtons.add(imageModel1);
+        imageButtons.add(imageModel2);
 
         runAppButton = findViewById(R.id.runAppButton);
         overlayPermissionButton = findViewById(R.id.overlayPermissionButton);
@@ -71,6 +128,7 @@ public class MainActivity extends AppCompatActivity {
             Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
             overlayPermissionLauncher.launch(i);
         });
+
         /**
          * Configures the media projection launcher to handle screen capture permission responses.
          * This launcher processes the result of media projection permission requests and starts
@@ -109,9 +167,17 @@ public class MainActivity extends AppCompatActivity {
             if (resultCode == Activity.RESULT_OK) {
                 // Permission granted
                 try {
+                    if (chosen_image_model[0].isEmpty() || chosen_image_model[1].isEmpty() || chosen_text_model.isEmpty()) {
+                        Toast.makeText(this, "Please choose image and text models", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
                     Intent serviceIntent = new Intent(this, OverlayService.class);
                     serviceIntent.putExtra("resultCode", resultCode);
                     serviceIntent.putExtra("data", data);
+
+                    serviceIntent.putExtra("chosen_image_model_model", chosen_image_model[0]);
+                    serviceIntent.putExtra("chosen_image_model_label", chosen_image_model[1]);
+                    serviceIntent.putExtra("chosen_text_model", chosen_text_model);
 
 
                     Log.d(TAG, "Starting service with resultCode: " + resultCode);
@@ -139,15 +205,106 @@ public class MainActivity extends AppCompatActivity {
                     Intent i = mediaProjectionManager.createScreenCaptureIntent();
                     mediaProjectionLauncher.launch(i);
                 }
-
-
             } else {
                 Toast.makeText(this, "Please enable overlay permission", Toast.LENGTH_SHORT).show();
             }
         });
 
+        textModel1.setOnClickListener(l -> {
+            for (Button b : textButtons) {
+                String s = b.getText().toString();
+                if (s.equals("DistilBERT Tagalog")) {
+                    chosen_text_model = DistilBert_Tagalog_MODEL;
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
+                    b.setTextColor(Color.parseColor("#FFFFFF"));
+                } else {
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
+                    b.setTextColor(Color.parseColor("#002D8B"));
+                }
+            }
+        });
+        textModel2.setOnClickListener(l -> {
+            for (Button b : textButtons) {
+                String s = b.getText().toString();
+                if (s.equals("MSX DistilBERT")) {
+                    chosen_text_model = xtremedistil_MODEL;
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
+                    b.setTextColor(Color.parseColor("#FFFFFF"));
+                } else {
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
+                    b.setTextColor(Color.parseColor("#002D8B"));
+                }
+            }
+        });
+        textModel3.setOnClickListener(l -> {
+            for (Button b : textButtons) {
+                String s = b.getText().toString();
+                if (s.equals("DOST RoBERTa")) {
+                    chosen_text_model = dost_robert_MODEL;
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
+                    b.setTextColor(Color.parseColor("#FFFFFF"));
+                } else {
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
+                    b.setTextColor(Color.parseColor("#002D8B"));
+                }
+            }
+        });
+        textModel4.setOnClickListener(l -> {
+            for (Button b : textButtons) {
+                String s = b.getText().toString();
+                if (s.equals("XLM RoBERTa")) {
+                    chosen_text_model = xlm_roberta_MODEL;
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
+                    b.setTextColor(Color.parseColor("#FFFFFF"));
+                } else {
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
+                    b.setTextColor(Color.parseColor("#002D8B"));
+                }
+            }
+        });
+        textModel5.setOnClickListener(l -> {
+            for (Button b : textButtons) {
+                String s = b.getText().toString();
+                if (s.equals("RoBERTa Tagalog")) {
+                    chosen_text_model = roberta_tagalog_MODEL;
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
+                    b.setTextColor(Color.parseColor("#FFFFFF"));
+                } else {
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
+                    b.setTextColor(Color.parseColor("#002D8B"));
+                }
+            }
+        });
+
+        imageModel1.setOnClickListener(l -> {
+            for (Button b : imageButtons) {
+                String s = b.getText().toString();
+                if (s.equals("Yolov10n_32f")) {
+                    chosen_image_model = new String[]{YOLO_V10_F32_MODEL, YOLO_V10_F32_LABELS};
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
+                    b.setTextColor(Color.parseColor("#FFFFFF"));
+                } else {
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
+                    b.setTextColor(Color.parseColor("#002D8B"));
+                }
+            }
+        });
+        imageModel2.setOnClickListener(l -> {
+            for (Button b : imageButtons) {
+                String s = b.getText().toString();
+                if (s.equals("Yolov10n_16f")) {
+                    chosen_image_model = new String[]{YOLO_V10_F16_MODEL, YOLO_V10_F16_LABELS};
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
+                    b.setTextColor(Color.parseColor("#FFFFFF"));
+                } else {
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
+                    b.setTextColor(Color.parseColor("#002D8B"));
+                }
+            }
+        });
     }
-    private void stopOverlayService(){
+
+    private void stopOverlayService() {
         Intent serviceIntent = new Intent(this, OverlayService.class);
         serviceIntent.setAction("STOP_SERVICE");
         startService(serviceIntent);

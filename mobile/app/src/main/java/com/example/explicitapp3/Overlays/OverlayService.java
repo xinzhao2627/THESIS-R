@@ -56,10 +56,10 @@ import java.io.IOException;
  *
  * @author xinzhao2627 (R. Montaniel)
  * @version 1.0
- * @since API level 21
  * @see OverlayFunctions
  * @see MainActivity
  * @see MediaProjection
+ * @since API level 21
  */
 public class OverlayService extends Service {
     public static final String TAG = "OverlayService";
@@ -76,8 +76,8 @@ public class OverlayService extends Service {
     }
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent != null && "STOP_SERVICE".equals(intent.getAction())){
+    public int onStartCommand(Intent intent, int flags, int startId)  {
+        if (intent != null && "STOP_SERVICE".equals(intent.getAction())) {
             Log.w(TAG, "Stop command received, shutting down service");
             stopSelf();
             return START_NOT_STICKY;
@@ -86,6 +86,15 @@ public class OverlayService extends Service {
 
         int rc = intent.getIntExtra("resultCode", -1);
         Intent d = intent.getParcelableExtra("data");
+
+        String chosen_image_model_path = intent.getStringExtra("chosen_image_model_model");
+        String chosen_image_model_labels = intent.getStringExtra("chosen_image_model_label");
+        String chosen_text_model = intent.getStringExtra("chosen_text_model");
+
+        Log.w(TAG, "Received models - Image: " + chosen_image_model_path);
+        Log.w(TAG, "Received labels: " + chosen_image_model_labels);
+        Log.w(TAG, "Received text model: " + chosen_text_model);
+
         Log.w(TAG, "onStartCommand: Media projection will now start capturing");
 
         if (rc == -1 && d != null) {
@@ -99,7 +108,7 @@ public class OverlayService extends Service {
             }
             startForeground(SERVICE_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
             try {
-                overlayFunctions.initModel();
+                overlayFunctions.initModel(chosen_image_model_path, chosen_image_model_labels, chosen_text_model);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -116,7 +125,7 @@ public class OverlayService extends Service {
     public void onDestroy() {
         super.onDestroy();
 
-        if (overlayFunctions != null){
+        if (overlayFunctions != null) {
             overlayFunctions.destroy();
             overlayFunctions = null;
         }

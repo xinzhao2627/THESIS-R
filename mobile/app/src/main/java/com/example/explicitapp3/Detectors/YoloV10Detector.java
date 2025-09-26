@@ -38,10 +38,10 @@ import org.tensorflow.lite.gpu.GpuDelegate;
 public class YoloV10Detector {
     Context context;
     public final String TAG = "YoloV10Detector";
-    public static final String MODEL_PATH = "yolov10_16/yolov10n_float16.tflite";
-    public static final String LABELS_PATH = "yolov10_16/labels.txt";
-    public static final DataType INPUT_IMAGE_TYPE = DataType.FLOAT32;
-    public static final DataType OUTPUT_IMAGE_TYPE = DataType.FLOAT32;
+    String MODEL_PATH;
+    String LABELS_PATH;
+    DataType INPUT_IMAGE_TYPE = DataType.FLOAT32;
+    DataType OUTPUT_IMAGE_TYPE = DataType.FLOAT32;
     private static final float CONFIDENCE_THRESHOLD = 0.4f;
 
     List<String> labels;
@@ -72,7 +72,9 @@ public class YoloV10Detector {
     // this is O(L) where L is the set of labels
     // but L is guaranteed to be less than the time complexity of resize()
     // so the time complexity here is omitted in O(L + R + B) as L < R & L < B
-    public YoloV10Detector(Context context) throws IOException {
+    public YoloV10Detector(Context context, String chosen_image_model, String chosen_image_label) throws IOException {
+        MODEL_PATH = chosen_image_model;
+        LABELS_PATH = chosen_image_label;
         Log.w(TAG, "YoloV10Detector: Yolo initialized");
         long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 

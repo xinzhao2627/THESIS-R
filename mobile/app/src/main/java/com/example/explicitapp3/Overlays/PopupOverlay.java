@@ -10,16 +10,17 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 
+import com.example.explicitapp3.Detectors.Scrapped_distilbert_tagalog_detector;
 import com.example.explicitapp3.R;
-import com.example.explicitapp3.Detectors.DistilBERT_Detector;
+import com.example.explicitapp3.Detectors.DistilBERT_tagalog_Detector;
 
 public class PopupOverlay {
 
-    public PopupOverlay(LayoutInflater lf, String TAG, DistilBERT_Detector distilBERTDetector, Context mcontext, WindowManager wm) {
+    public PopupOverlay(LayoutInflater lf, String TAG, Scrapped_distilbert_tagalog_detector scrappedDistilbertTagalogDetector, Context mcontext, WindowManager wm) {
         View view = lf.inflate(R.layout.activity_overlay, null);
         Button b = view.findViewById(R.id.tohomescreenButton);
-        if (distilBERTDetector != null) {
-            distilBERTDetector.setView(view);
+        if (scrappedDistilbertTagalogDetector != null) {
+            scrappedDistilbertTagalogDetector.setView(view);
         }
         b.setOnClickListener(new View.OnClickListener() {
             @Override

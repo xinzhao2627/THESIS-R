@@ -1,18 +1,11 @@
 package com.example.explicitapp3.Overlays;
 
-import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.ImageFormat;
-import android.graphics.Paint;
 import android.graphics.PixelFormat;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
@@ -26,28 +19,22 @@ import android.os.HandlerThread;
 import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Surface;
-import android.view.TextureView;
-import android.view.View;
 import android.view.WindowManager;
 import android.view.WindowMetrics;
 
-import com.example.explicitapp3.Detectors.ImageModel;
-import com.example.explicitapp3.Detectors.YoloV10Detector;
 import com.example.explicitapp3.NotificationHelper;
-import com.example.explicitapp3.Detectors.DistilBERT_Detector;
-import com.example.explicitapp3.Types.ClassifyResults;
+import com.example.explicitapp3.Detectors.DistilBERT_tagalog_Detector;
+import com.example.explicitapp3.Parent.ImageModel;
+import com.example.explicitapp3.Parent.TextModel;
 import com.example.explicitapp3.Types.DetectionResult;
-import com.google.android.gms.common.util.ArrayUtils;
+import com.example.explicitapp3.Types.ModelTypes;
 
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class OverlayFunctions {
     private MediaProjectionManager mediaProjectionManager;
@@ -55,20 +42,18 @@ public class OverlayFunctions {
     private MediaProjection mediaProjection;
     public Notification notification;
     Surface surface;
-    Bitmap mbitmap;
     VirtualDisplay mVirtualDisplay;
     Context mcontext;
     int dpi;
-    int frameCounter = 0;
-    int frameSkip = 2;
+    private long lastProcessTime = 0;
+    private static final long PROCESS_INTERVAL_MS = 180;
+    ImageModel imageModel;
     // these are for screenshot
     ImageReader imageReader;
     Handler handler;
     HandlerThread handlerThread;
-    DistilBERT_Detector distilBERTDetector;
-    YoloV10Detector yoloV10Detector;
     DynamicOverlay dynamicOverlay;
-    OpenGlRecorder openGlRecorder;
+    TextModel textModel;
     private static final String TAG = "OverlayFunctions";
 
     /**
@@ -80,7 +65,7 @@ public class OverlayFunctions {
      * @return The created notification instance
      * @throws IOException If text model initialization fails
      * @see NotificationHelper#createNotificationChannel(Context)
-     * @see DistilBERT_Detector (Context, String)
+     * @see DistilBERT_tagalog_Detector (Context, String)
      */
     public Notification setNotification(Context context) throws IOException {
         NotificationHelper.createNotificationChannel(context);
@@ -95,8 +80,6 @@ public class OverlayFunctions {
         this.mediaProjection = mp;
         this.mediaProjectionManager = mpm;
         initImageReader();
-//        iniOpenGlRecorder();
-
     }
 
     public void initRecorder() {
@@ -131,7 +114,6 @@ public class OverlayFunctions {
 
     }
 
-
     public void initImageReader() {
         handlerThread = new HandlerThread("ImageProcessor");
         handlerThread.start();
@@ -141,25 +123,17 @@ public class OverlayFunctions {
         imageReader = ImageReader.newInstance(
                 boundsRes[0],
                 boundsRes[1],
-//                ImageFormat.YUV_420_888,
                 PixelFormat.RGBA_8888,
                 56
         );
-
         imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
             @Override
             public void onImageAvailable(ImageReader reader) {
-//                frameCounter++;
-//                if (frameCounter % frameSkip != 0) {
-//                    Image image = reader.acquireLatestImage();
-//                    if (image != null) image.close();
-//                }
                 Image image = reader.acquireLatestImage();
                 if (image != null) {
                     Bitmap bitmap = imageToBitmap(image);
                     processImageAsync(bitmap);
                     image.close();
-//                    saveToGalleryBitmap(bitmap);
                     bitmap.recycle();
                 }
             }
@@ -167,16 +141,6 @@ public class OverlayFunctions {
         surface = imageReader.getSurface();
         initRecorder();
     }
-    public void iniOpenGlRecorder(){
-        int[] boundsRes = getBounds();
-        int width = boundsRes[0];
-        int height = boundsRes[1];
-        openGlRecorder = new OpenGlRecorder(mediaProjection, width, height, dpi, mcontext);
-
-        openGlRecorder.start();
-
-    }
-
     public void setupDynamicOverlay() {
         dynamicOverlay = new DynamicOverlay(mcontext);
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
@@ -192,17 +156,17 @@ public class OverlayFunctions {
 
     private void processImageAsync(Bitmap bitmap) {
         // get all result for yolo
-        ClassifyResults res = yoloV10Detector.detect(bitmap);
+//        ClassifyResults res = imageModel.detect(bitmap);
+//        // then for bert
+        long startTime = System.currentTimeMillis();
+        List<DetectionResult> dt = textModel.detect(bitmap);
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
+//        Log.i(TAG, "Function took: " + duration + " ms");
 
-        // then for bert
-        List<DetectionResult> dt = distilBERTDetector.textRecognition(bitmap);
 
-        // combine
-        dt.addAll(res.detectionResults);
-
-
-        Log.w(TAG, "res length: "+res.detectionResults.size() + " dt length: " + dt.size() );
-
+//        // combine
+//        res.detectionResults.addAll(dt);
         // display
         if (dynamicOverlay != null) {
             new Handler(mcontext.getMainLooper()).post(() -> {
@@ -210,11 +174,11 @@ public class OverlayFunctions {
             });
         }
     }
-
     /**
      * Converts an Android Image object to a Bitmap for processing.
      * Reconstruict the image using pixelstride.
      * ルビーちゃん, はいい??
+     *
      * @param image The source Image from ImageReader
      * @return Bitmap of the image
      * @see Image.Plane
@@ -230,6 +194,7 @@ public class OverlayFunctions {
         bitmap.copyPixelsFromBuffer(buffer);
         return bitmap;
     }
+
     /**
      * Saves a bitmap image to the device gallery using the MediaStore API.
      *
@@ -282,7 +247,7 @@ public class OverlayFunctions {
      * @apiNote This method is safe to call multiple times
      * @see #stopScreenCapture()
      * @see HandlerThread#quitSafely()
-     * @see DistilBERT_Detector#cleanup()
+     * @see DistilBERT_tagalog_Detector#cleanup()
      */
     public void destroy() {
         stopScreenCapture();
@@ -304,7 +269,6 @@ public class OverlayFunctions {
                 handlerThread.join(1000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-//                throw new RuntimeException(e);
             }
             handlerThread = null;
             handler = null;
@@ -313,18 +277,18 @@ public class OverlayFunctions {
             imageReader.close();
             imageReader = null;
         }
-        if (distilBERTDetector != null) {
-            distilBERTDetector.cleanup();
-            distilBERTDetector = null;
+        if (textModel != null) {
+            textModel.cleanup();
+            textModel = null;
         }
 
         if (surface != null) {
             surface.release();
             surface = null;
         }
-        if (yoloV10Detector != null) {
-            yoloV10Detector.cleanup();
-            yoloV10Detector = null;
+        if (imageModel != null) {
+            imageModel.cleanup();
+            imageModel = null;
         }
 
         if (mediaProjection != null) {
@@ -348,9 +312,10 @@ public class OverlayFunctions {
      * @throws IOException If the model file cannot be loaded or is corrupted
      * @apiNote Currently uses the exported NSFW model with metadata
      */
-    public void initModel() throws IOException {
-        distilBERTDetector = new DistilBERT_Detector(mcontext, "exporter_model/exporter_nsfw_model_metadata.tflite");
-        yoloV10Detector = new YoloV10Detector(mcontext);
+
+    public void initModel(String chosen_image_model, String chosen_image_label, String chosen_text_model) throws IOException{
+        textModel = new TextModel(mcontext, ModelTypes.DISTILBERT_TAGALOG);
+//        imageModel = new ImageModel(mcontext, ModelTypes.YOLO_V10_F32);
     }
 
     /**
