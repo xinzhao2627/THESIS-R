@@ -41,25 +41,31 @@ public class DistilBERT_tagalog_Detector {
     public static final String[] LABELS = ModelTypes.DISTILBERT_TAGALOG_LABELARRAY;
     public static final String tokenizerPath = ModelTypes.DISTILBERT_TAGALOG_TOKENIZER;
     public static final String modelPath = ModelTypes.DISTILBERT_TAGALOG_MODEL;
+    int[][] ids;
+    int[][] mask;
+    float[][] outputs;
+
     public DistilBERT_tagalog_Detector(Context context) {
         mcontext = context;
         try {
             recognizer = new Recognizer(context);
             softmaxConverter = new SoftmaxConverter();
+
             this.mcontext = context;
             ByteBuffer modelBuffer_base = TaskJniUtils.loadMappedFile(context, modelPath);
             Interpreter.Options options = new Interpreter.Options();
             CompatibilityList compatibilityList = new CompatibilityList();
-//            if (compatibilityList.isDelegateSupportedOnThisDevice()) {
-//                Log.w(TAG, "GPU SUPPORTED");
-//                GpuDelegate.Options delegateOptions = compatibilityList.getBestOptionsForThisDevice();
-//                GpuDelegate gpuDelegate = new GpuDelegate(delegateOptions);
-//                options.addDelegate(gpuDelegate);
-//            } else {
-            Log.w(TAG, "GPU NOT SUPPORTED");
-            Log.w(TAG, "available processors: " + Runtime.getRuntime().availableProcessors());
-            options.setNumThreads(Runtime.getRuntime().availableProcessors());
-//            }//
+            if (compatibilityList.isDelegateSupportedOnThisDevice()) {
+                Log.w(TAG, "GPU SUPPORTED");
+                GpuDelegate.Options delegateOptions = compatibilityList.getBestOptionsForThisDevice();
+                GpuDelegate gpuDelegate = new GpuDelegate(delegateOptions);
+                options.addDelegate(gpuDelegate);
+            } else {
+                Log.w(TAG, "GPU NOT SUPPORTED");
+                Log.w(TAG, "available processors: " + Runtime.getRuntime().availableProcessors());
+                options.setNumThreads(Runtime.getRuntime().availableProcessors());
+//                options.setUseXNNPACK(true);
+            }//
             interpreter = new Interpreter(modelBuffer_base, options);
 
             int inputCount = interpreter.getInputTensorCount();
@@ -68,6 +74,7 @@ public class DistilBERT_tagalog_Detector {
                 String name = interpreter.getInputTensor(i).name();
                 Log.w(TAG, "Input " + i + " (" + name + ") shape: " + Arrays.toString(shape));
             }
+            initBuffers();
             InputStream inputStream = mcontext.getAssets().open(tokenizerPath);
             tokenizer = new Distilbert_tagalog_tokenizer(inputStream);
         } catch (Exception e) {
@@ -78,8 +85,10 @@ public class DistilBERT_tagalog_Detector {
     }
 
     public List<DetectionResult> detect(Bitmap bitmap) {
-        List<DetectionResult> detectionResultList = new ArrayList<>();
+        int bw = bitmap.getWidth();
+        int bh = bitmap.getHeight();
 
+        List<DetectionResult> detectionResultList = new ArrayList<>();
         List<TextResults> textResults = recognizer.textRecognition(bitmap);
         long startTime = System.currentTimeMillis();
         for (TextResults t : textResults) {
@@ -105,18 +114,19 @@ public class DistilBERT_tagalog_Detector {
                     l = LABELS[i];
                 }
             }
-
-            Log.i(TAG, "label: "+l+"  max cfs: " + max_cfs);
+            Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
+            Log.i(TAG, "label: " + l + "  max cfs: " + max_cfs);
             detectionResultList.add(new DetectionResult(
                     0,
                     max_cfs,
-                    t.left,
-                    t.top + 100f,
-                    t.right,
-                    t.bottom,
+                    t.left / bitmap.getWidth(),
+                    t.top / bitmap.getHeight(),
+                    t.right / bitmap.getWidth(),
+                    t.bottom / bitmap.getHeight(),
                     l,
                     1
             ));
+            Log.i(TAG, "\n");
         }
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
@@ -124,26 +134,20 @@ public class DistilBERT_tagalog_Detector {
         return detectionResultList;
     }
 
+    public void initBuffers() {
+        ids = new int[1][ModelTypes.DISTILBERT_TAGALOG_SEQ_LEN];
+        mask = new int[1][ModelTypes.DISTILBERT_TAGALOG_SEQ_LEN];
+        int[] outputShape = interpreter.getOutputTensor(0).shape();
+        outputs = new float[outputShape[0]][outputShape[1]];
+    }
+
     public float[][] runInference(long[] inputIds, long[] attentionMask) {
         long startTime = System.currentTimeMillis();
-
-        int batchSize = 1;
         int seqLen = inputIds.length;
-
-        int[][] ids = new int[batchSize][seqLen];
-        int[][] mask = new int[batchSize][seqLen];
-
         for (int i = 0; i < seqLen; i++) {
             ids[0][i] = (int) inputIds[i];
             mask[0][i] = (int) attentionMask[i];
         }
-
-        int[] inputShape0 = interpreter.getInputTensor(0).shape();
-        int[] inputShape1 = interpreter.getInputTensor(1).shape();
-
-        // 1 batch size 2 labels (safe/nsfw)
-        int[] outputShape = interpreter.getOutputTensor(0).shape();
-        float[][] outputs = new float[outputShape[0]][outputShape[1]];
 
         Object[] inputArray = new Object[]{mask, ids};
         Map<Integer, Object> outputsMap = new HashMap<>();
@@ -162,6 +166,7 @@ public class DistilBERT_tagalog_Detector {
             interpreter = null;
         }
     }
+
     private void debugInput(String raw, long[] ids, long[] mask) {
         int nonPad = 0;
         for (int i = 0; i < ids.length; i++) if (ids[i] != 0) nonPad++;

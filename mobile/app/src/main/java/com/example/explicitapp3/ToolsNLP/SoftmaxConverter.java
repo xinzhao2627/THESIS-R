@@ -9,7 +9,7 @@ public class SoftmaxConverter {
             }
         }
 
-        // Subtract max for numerical stability
+        // subtract max since there are n-logits
         float sum = 0f;
         float[] exps = new float[logits.length];
         for (int i = 0; i < logits.length; i++) {
@@ -17,7 +17,7 @@ public class SoftmaxConverter {
             sum += exps[i];
         }
 
-        // Normalize
+        // gogog
         for (int i = 0; i < logits.length; i++) {
             exps[i] /= sum;
         }

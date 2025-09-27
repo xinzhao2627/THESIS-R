@@ -78,7 +78,7 @@ public class Roberta_tagalog_tokenizer {
 
     public TokenizedResult encode(String textA, String textB) {
         List<String> tokens = new ArrayList<>();
-        // [CLS]
+        // <s> starting segment
         tokens.add("<s>");
 
         // text tokenization
@@ -86,7 +86,7 @@ public class Roberta_tagalog_tokenizer {
             tokens.addAll(tokenizeText(textA));
         }
 
-        // [SEP] between sentences
+        // </s> segment between sentences
         tokens.add("</s>");
 
         // second text/sentence
@@ -109,7 +109,7 @@ public class Roberta_tagalog_tokenizer {
                 inputIds[i] = vocab.getOrDefault(token, vocab.get("<unk>"));
                 attentionMask[i] = 1;
             } else {
-                // Padding
+                // if empty space or tokens ended, add pad
                 inputIds[i] = vocab.get("<pad>");
                 attentionMask[i] = 0;
             }
@@ -148,8 +148,6 @@ public class Roberta_tagalog_tokenizer {
 
     private List<String> splitWord(String word) {
         List<String> subwords = new ArrayList<>();
-
-        // Simple BPE-like splitting (you can improve this)
         int start = 0;
         for (int i = word.length(); i > 0; i--) {
             String substring = word.substring(start, i);

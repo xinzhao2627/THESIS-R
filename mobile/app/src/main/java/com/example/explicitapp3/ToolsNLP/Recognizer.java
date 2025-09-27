@@ -39,8 +39,13 @@ public class Recognizer {
                 for (Text t : textBlock.getComponents()) {
 //                    Log.w(TAG, i + " textRecognition: " + t.getValue());
                     Rect rect = t.getBoundingBox();
+                    int offset = (int)(rect.height() * 0.9);
+                    int top = rect.top - offset;
+                    if (top < 0) {
+                        top = 0;
+                    }
 //                    Log.w(TAG, "left: " + rect.left + " right: " + rect.right + " top: " + rect.top + " bottom: " + rect.bottom);
-                    textList.add(new TextResults(rect.left, rect.top, rect.right, rect.bottom, 1, t.getValue()));
+                    textList.add(new TextResults(rect.left, top, rect.right, rect.bottom - offset, 1, t.getValue()));
                 }
             }
         }catch (Exception e) {

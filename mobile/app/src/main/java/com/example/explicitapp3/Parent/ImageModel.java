@@ -36,6 +36,7 @@ public class ImageModel {
     }
 
     public ClassifyResults detect(Bitmap bitmap){
+        Log.i(TAG, "detecting image");
         return yoloV10Detector.detect(bitmap);
     }
 

@@ -10,8 +10,20 @@ import org.json.JSONArray;
 
 import java.io.InputStream;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class Distilbert_tagalog_tokenizer {
+    private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
+    private static final String UNK_TOKEN = "[UNK]";
+    private static final String PAD_TOKEN = "[PAD]";
+    private static final String CLS_TOKEN = "[CLS]";
+    private static final String SEP_TOKEN = "[SEP]";
+    private int unkTokenId;
+    private int padTokenId;
+    private int clsTokenId;
+    private int sepTokenId;
+
+
     private Map<String, Integer> vocab;
     private Map<Integer, String> idToToken;
     private Set<String> specialTokens;
@@ -48,7 +60,7 @@ public class Distilbert_tagalog_tokenizer {
 
         JSONObject tokenizerJson = new JSONObject(jsonString);
 
-        // Load vocabulary
+        // load vocab in that same json
         JSONObject vocabJson = tokenizerJson.getJSONObject("model").getJSONObject("vocab");
         for (Iterator<String> it = vocabJson.keys(); it.hasNext(); ) {
             String token = it.next();
@@ -58,8 +70,12 @@ public class Distilbert_tagalog_tokenizer {
             // list token of corresponding id
             idToToken.put(id, token);
         }
+        this.unkTokenId = vocab.get(UNK_TOKEN);
+        this.padTokenId = vocab.get(PAD_TOKEN);
+        this.clsTokenId = vocab.get(CLS_TOKEN);
+        this.sepTokenId = vocab.get(SEP_TOKEN);
 
-        // Load special tokens
+        // load special tokens like sep, unk, pad, etc..
         if (tokenizerJson.has("added_tokens")) {
             JSONArray addedTokensArray = tokenizerJson.getJSONArray("added_tokens");
             for (int i = 0; i < addedTokensArray.length(); i++) {
@@ -79,16 +95,16 @@ public class Distilbert_tagalog_tokenizer {
 
     public TokenizedResult encode(String textA, String textB) {
         List<String> tokens = new ArrayList<>();
-        // [CLS]
-        tokens.add("[CLS]");
+        // [CLS] for distil
+        tokens.add(CLS_TOKEN);
 
         // text tokenization
         if (textA != null) {
             tokens.addAll(tokenizeText(textA));
         }
 
-        // [SEP] between sentences
-        tokens.add("[SEP]");
+        // [SEP] between sentences separator
+        tokens.add(SEP_TOKEN);
 
         // second text/sentence
         if (textB != null) {
@@ -96,14 +112,14 @@ public class Distilbert_tagalog_tokenizer {
             tokens.add("[SEP]");
         }
 
-        //                maxLength = seq_len = 1
         long[] inputIds = new long[maxLength];
         long[] attentionMask = new long[inputIds.length];
         long[] tokenTypeIds = new long[inputIds.length];
 //        Log.i(TAG, "vocab length: " + getVocabSize());
 //        Log.i(TAG, "token length: " + tokens.size());
+        int tokenSize=  Math.min(tokens.size(), maxLength);
         for (int i = 0; i < inputIds.length; i++) {
-            if (i < tokens.size()) {
+            if (i < tokenSize) {
                 String token = tokens.get(i);
 //                Log.i(TAG, "token is: " + token + " id is: " + vocab.getOrDefault(token, vocab.get("<unk>")));
                 inputIds[i] = vocab.getOrDefault(token, vocab.get("[UNK]"));
@@ -122,14 +138,13 @@ public class Distilbert_tagalog_tokenizer {
     private List<String> tokenizeText(String text) {
         List<String> tokens = new ArrayList<>();
         // split on whitespace and handle punctuation
-        String[] words = text.split("\\s+");
+        String[] words = WHITESPACE_PATTERN.split(text);
 //        Log.i(TAG, "splitted word: " + Arrays.toString(words));
         for (String word : words) {
-
-            if (vocab.containsKey(word)){
-                tokens.add(word.toLowerCase());
-            } else if (vocab.containsKey(word.toLowerCase())){
-                tokens.add(word.toLowerCase());
+            if (word.isEmpty()) continue;
+            String lw = word.toLowerCase();
+            if (vocab.containsKey(lw)){
+                tokens.add(lw);
             }
             else {
                 // find all subwords
@@ -171,7 +186,7 @@ public class Distilbert_tagalog_tokenizer {
                 tokens.add(longestMatch);
                 start = longestEnd;
             } else {
-                // No match found - use [UNK] and move forward
+                // [UNK] if theres nothing
                 tokens.add("[UNK]");
                 start++;
             }

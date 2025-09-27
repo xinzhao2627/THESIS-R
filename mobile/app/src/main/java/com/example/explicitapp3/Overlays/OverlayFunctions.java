@@ -27,6 +27,7 @@ import com.example.explicitapp3.NotificationHelper;
 import com.example.explicitapp3.Detectors.DistilBERT_tagalog_Detector;
 import com.example.explicitapp3.Parent.ImageModel;
 import com.example.explicitapp3.Parent.TextModel;
+import com.example.explicitapp3.Types.ClassifyResults;
 import com.example.explicitapp3.Types.DetectionResult;
 import com.example.explicitapp3.Types.ModelTypes;
 
@@ -34,6 +35,7 @@ import com.example.explicitapp3.Types.ModelTypes;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 public class OverlayFunctions {
@@ -141,6 +143,7 @@ public class OverlayFunctions {
         surface = imageReader.getSurface();
         initRecorder();
     }
+
     public void setupDynamicOverlay() {
         dynamicOverlay = new DynamicOverlay(mcontext);
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
@@ -155,25 +158,27 @@ public class OverlayFunctions {
     }
 
     private void processImageAsync(Bitmap bitmap) {
-        // get all result for yolo
-//        ClassifyResults res = imageModel.detect(bitmap);
-//        // then for bert
         long startTime = System.currentTimeMillis();
-        List<DetectionResult> dt = textModel.detect(bitmap);
+        List<DetectionResult> dt = new ArrayList<>();
+        if (imageModel != null){
+            ClassifyResults res = imageModel.detect(bitmap);
+            dt.addAll(res.detectionResults);
+        }
+        if (textModel != null) {
+            List<DetectionResult> dt_text = textModel.detect(bitmap);
+            dt.addAll(dt_text);
+        }
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
 //        Log.i(TAG, "Function took: " + duration + " ms");
-
-
-//        // combine
-//        res.detectionResults.addAll(dt);
-        // display
+        // display faster??
         if (dynamicOverlay != null) {
             new Handler(mcontext.getMainLooper()).post(() -> {
                 dynamicOverlay.setResults(dt);
             });
         }
     }
+
     /**
      * Converts an Android Image object to a Bitmap for processing.
      * Reconstruict the image using pixelstride.
@@ -313,8 +318,14 @@ public class OverlayFunctions {
      * @apiNote Currently uses the exported NSFW model with metadata
      */
 
-    public void initModel(String chosen_image_model, String chosen_image_label, String chosen_text_model) throws IOException{
-        textModel = new TextModel(mcontext, ModelTypes.DISTILBERT_TAGALOG);
+    public void initModel(String chosen_model) throws IOException {
+        Log.i(TAG, "the model is: "+chosen_model);
+        if (chosen_model.equals(ModelTypes.DISTILBERT_TAGALOG) || chosen_model.equals(ModelTypes.ROBERTA_TAGALOG)) {
+            textModel = new TextModel(mcontext, chosen_model);
+        } else if (chosen_model.equals(ModelTypes.YOLO_V10_F16) || chosen_model.equals(ModelTypes.YOLO_V10_F32)) {
+            imageModel = new ImageModel(mcontext, chosen_model);
+        }
+//        textModel = new TextModel(mcontext, ModelTypes.DISTILBERT_TAGALOG);
 //        imageModel = new ImageModel(mcontext, ModelTypes.YOLO_V10_F32);
     }
 

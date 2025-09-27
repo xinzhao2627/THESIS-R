@@ -86,10 +86,10 @@ public class DynamicOverlay extends View{
                 r += dr.right * getWidth();
                 b += dr.bottom * getHeight();
             } else {
-                l += dr.left;
-                t += dr.top;
-                r += dr.right;
-                b += dr.bottom;
+                l += dr.left * getWidth();
+                t += dr.top * getHeight();
+                r += dr.right * getWidth();
+                b += dr.bottom * getHeight();
             }
 
             RectF rectF = new RectF(l, t, r, b);
