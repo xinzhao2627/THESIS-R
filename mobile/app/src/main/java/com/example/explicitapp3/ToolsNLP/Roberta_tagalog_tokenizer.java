@@ -137,10 +137,7 @@ public class Roberta_tagalog_tokenizer {
             else {
                 tokens.add("<unk>");
             }
-//            else {
-//                // split the word into subwords, noo
-//                tokens.addAll(splitWord(word));
-//            }
+
         }
 
         return tokens;

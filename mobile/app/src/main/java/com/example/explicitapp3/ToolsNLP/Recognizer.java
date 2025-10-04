@@ -40,6 +40,8 @@ public class Recognizer {
 //                    Log.w(TAG, i + " textRecognition: " + t.getValue());
                     Rect rect = t.getBoundingBox();
                     int offset = (int)(rect.height() * 0.9);
+                    offset = 0;
+
                     int top = rect.top - offset;
                     if (top < 0) {
                         top = 0;

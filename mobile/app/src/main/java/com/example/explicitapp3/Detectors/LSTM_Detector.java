@@ -4,7 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.Log;
 
-import com.example.explicitapp3.ToolsNLP.Distilbert_tagalog_tokenizer;
+import com.example.explicitapp3.ToolsNLP.LSTM_tokenizer;
 import com.example.explicitapp3.ToolsNLP.Recognizer;
 import com.example.explicitapp3.ToolsNLP.Roberta_tagalog_tokenizer;
 import com.example.explicitapp3.ToolsNLP.SoftmaxConverter;
@@ -31,41 +31,32 @@ import java.util.Map;
 import ai.djl.huggingface.tokenizers.Encoding;
 import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
 
-public class DistilBERT_tagalog_Detector {
-    private static final String TAG = "DISTILBERT_TAGALOG";
+public class LSTM_Detector {
+    private static final String TAG = "LSTM_TAGALOG";
     private Context mcontext;
     Interpreter interpreter;
     Recognizer recognizer;
-    Distilbert_tagalog_tokenizer tokenizer;
-    SoftmaxConverter softmaxConverter;
-    public static final String[] LABELS = ModelTypes.DISTILBERT_TAGALOG_LABELARRAY;
-    public static final String tokenizerPath = ModelTypes.DISTILBERT_TAGALOG_TOKENIZER;
-    public static final String modelPath = ModelTypes.DISTILBERT_TAGALOG_MODEL;
+    LSTM_tokenizer tokenizer;
+
+    public static final String[] LABELS = ModelTypes.LSTM_LABELARRAY;
+    public static final String tokenizerPath = ModelTypes.LSTM_TOKENIZER;
+    public static final String modelPath = ModelTypes.LSTM_MODEL;
     int[][] ids;
     int[][] mask;
     float[][] outputs;
 
-    public DistilBERT_tagalog_Detector(Context context) {
+    public LSTM_Detector(Context context) {
         mcontext = context;
         try {
             recognizer = new Recognizer(context);
-            softmaxConverter = new SoftmaxConverter();
 
             this.mcontext = context;
             ByteBuffer modelBuffer_base = TaskJniUtils.loadMappedFile(context, modelPath);
             Interpreter.Options options = new Interpreter.Options();
-            CompatibilityList compatibilityList = new CompatibilityList();
-//            if (compatibilityList.isDelegateSupportedOnThisDevice()) {
-//                Log.w(TAG, "GPU SUPPORTED");
-//                GpuDelegate.Options delegateOptions = compatibilityList.getBestOptionsForThisDevice();
-//                GpuDelegate gpuDelegate = new GpuDelegate(delegateOptions);
-//                options.addDelegate(gpuDelegate);
-//            } else {
             Log.w(TAG, "GPU NOT SUPPORTED");
             Log.w(TAG, "available processors: " + Runtime.getRuntime().availableProcessors());
             options.setNumThreads(Runtime.getRuntime().availableProcessors());
             options.setUseXNNPACK(true);
-//            }//
             interpreter = new Interpreter(modelBuffer_base, options);
 
             int inputCount = interpreter.getInputTensorCount();
@@ -76,7 +67,7 @@ public class DistilBERT_tagalog_Detector {
             }
             initBuffers();
             InputStream inputStream = mcontext.getAssets().open(tokenizerPath);
-            tokenizer = new Distilbert_tagalog_tokenizer(inputStream);
+            tokenizer = new LSTM_tokenizer(inputStream);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -85,35 +76,22 @@ public class DistilBERT_tagalog_Detector {
     }
 
     public List<DetectionResult> detect(Bitmap bitmap) {
-        int bw = bitmap.getWidth();
-        int bh = bitmap.getHeight();
-
         List<DetectionResult> detectionResultList = new ArrayList<>();
         List<TextResults> textResults = recognizer.textRecognition(bitmap);
         long startTime = System.currentTimeMillis();
         for (TextResults t : textResults) {
             String text = t.textContent.toLowerCase().trim();
-            Distilbert_tagalog_tokenizer.TokenizedResult encoding = tokenizer.encode(text);
+            LSTM_tokenizer.TokenizedResult encoding = tokenizer.encode(text);
             long[] inputIds = encoding.inputIds;
             long[] attentionMask = encoding.attentionMask;
+
+            // if theres no tokens found just continue
+            if (inputIds.length < 1) continue;
+            // print statements
             debugInput(t.textContent, inputIds, attentionMask);
-//            ensureInputOrder(); // see below
             float[][] output = runInference(inputIds, attentionMask);
-            float[] probabilities = softmaxConverter.softmax(output[0]);
-            for (float[] o : output) Log.i(TAG, "output[]: " + Arrays.toString(o));
-
-//            Log.i(TAG, "output length: " + output.length);
-//            Log.i(TAG, "output array: " + Arrays.toString(output[0]));
-            float max_cfs = -100f;
-            String l = "";
-
-            for (int i = 0; i < probabilities.length; i++) {
-                if (probabilities[i] > max_cfs) {
-//                    Log.i(TAG, LABELS[i] + "prob: " + probabilities[i]);
-                    max_cfs = probabilities[i];
-                    l = LABELS[i];
-                }
-            }
+            float max_cfs = output[0][0];
+            String l = max_cfs > 0.5 ? LABELS[1]: LABELS[0];
             Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
             Log.i(TAG, "label: " + l + "  max cfs: " + max_cfs);
             detectionResultList.add(new DetectionResult(
@@ -135,25 +113,24 @@ public class DistilBERT_tagalog_Detector {
     }
 
     public void initBuffers() {
-        ids = new int[1][ModelTypes.DISTILBERT_TAGALOG_SEQ_LEN];
-        mask = new int[1][ModelTypes.DISTILBERT_TAGALOG_SEQ_LEN];
+        ids = new int[1][ModelTypes.LSTM_SEQ_LEN];
+        mask = new int[1][ModelTypes.LSTM_SEQ_LEN];
         int[] outputShape = interpreter.getOutputTensor(0).shape();
+        Log.i(TAG, "initBuffers: output shape[0]"+outputShape[0] + " outputshape[1]: "+outputShape[1]);
         outputs = new float[outputShape[0]][outputShape[1]];
     }
 
     public float[][] runInference(long[] inputIds, long[] attentionMask) {
         long startTime = System.currentTimeMillis();
         int seqLen = inputIds.length;
+
+        float[][] newInput = new float [1][seqLen];
+
         for (int i = 0; i < seqLen; i++) {
-            ids[0][i] = (int) inputIds[i];
-            mask[0][i] = (int) attentionMask[i];
+            newInput[0][i] = (float) inputIds[i];
         }
 
-        Object[] inputArray = new Object[]{mask, ids};
-        Map<Integer, Object> outputsMap = new HashMap<>();
-        outputsMap.put(0, outputs);
-
-        interpreter.runForMultipleInputsOutputs(inputArray, outputsMap);
+        interpreter.run(newInput, outputs);
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
 //        Log.i(TAG, "inference function took: " + duration + " ms");

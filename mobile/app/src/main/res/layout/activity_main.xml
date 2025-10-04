@@ -158,6 +158,19 @@
                         android:textAlignment="center"
                         android:textAppearance="@style/TextAppearance.Material3.LabelLarge" />
 
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/textmodelButton"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="133dp"
+                        android:layout_height="48dp"
+                        android:layout_margin="4dp"
+                        android:letterSpacing="0.07"
+                        android:text="DistilBERT Tagalog"
+                        android:textColor="#002D8B"
+                        android:textSize="11dp"
+                        app:cornerRadius="4dp"
+                        app:strokeColor="#002D8B" />
+
                     <com.google.android.flexbox.FlexboxLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -229,7 +242,20 @@
                             android:textSize="11dp"
                             app:cornerRadius="4dp"
                             app:strokeColor="#002D8B" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/textmodelButton6"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_margin="4dp"
+                            android:letterSpacing="0.07"
+                            android:text="LSTM"
+                            android:textColor="#002D8B"
+                            android:textSize="11dp"
+                            app:cornerRadius="4dp"
+                            app:strokeColor="#002D8B" />
                     </com.google.android.flexbox.FlexboxLayout>
+
 
                 </LinearLayout>
 

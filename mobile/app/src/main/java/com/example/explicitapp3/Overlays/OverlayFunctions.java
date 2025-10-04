@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class OverlayFunctions {
@@ -57,6 +58,23 @@ public class OverlayFunctions {
     DynamicOverlay dynamicOverlay;
     TextModel textModel;
     private static final String TAG = "OverlayFunctions";
+
+    List<TrackedBox> previousDetections = new ArrayList<>();
+    long DETECTION_PERSIST_MS = 600;
+    int MAX_MISSES = 10;
+    float IOU_THRESHOLD = 0.45f;
+
+    private static class TrackedBox {
+        DetectionResult dr;
+        long lastSeen;
+        int misses;
+
+        TrackedBox(DetectionResult dr, long t) {
+            this.dr = dr;
+            this.lastSeen = t;
+            this.misses = 0;
+        }
+    }
 
     /**
      * Initializes and configures the foreground service notification.
@@ -160,7 +178,7 @@ public class OverlayFunctions {
     private void processImageAsync(Bitmap bitmap) {
         long startTime = System.currentTimeMillis();
         List<DetectionResult> dt = new ArrayList<>();
-        if (imageModel != null){
+        if (imageModel != null) {
             ClassifyResults res = imageModel.detect(bitmap);
             dt.addAll(res.detectionResults);
         }
@@ -168,21 +186,120 @@ public class OverlayFunctions {
             List<DetectionResult> dt_text = textModel.detect(bitmap);
             dt.addAll(dt_text);
         }
+        List<DetectionResult> toBlur = updateTracking(dt, startTime);
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
+
+
 //        Log.i(TAG, "Function took: " + duration + " ms");
         // display faster??
         if (dynamicOverlay != null) {
             new Handler(mcontext.getMainLooper()).post(() -> {
-                dynamicOverlay.setResults(dt);
+                dynamicOverlay.setResults(toBlur);
             });
         }
     }
 
+    private List<DetectionResult> updateTracking(List<DetectionResult> dt, long now) {
+
+        if (!dt.isEmpty()) {
+            // this var tracks all the new overlaps, we dont include overlaps
+            boolean[] matched = new boolean[dt.size()];
+
+            for (TrackedBox tb: previousDetections){
+                int bestIndex = -1;
+                float bestIou = 0f;
+
+                // loop all the new objects and find the highest iou
+                for (int i = 0; i < dt.size(); i++){
+                    if (matched[i]) continue;
+                    DetectionResult c = dt.get(i);
+                    // skip if we are comparing image to text
+                    if (tb.dr.modelType != c.modelType) continue;
+
+                    // a high iou means one of the old object
+                    // is similar to the new one
+                    float iou = iou(tb.dr, c);
+                    if (iou > bestIou){
+                        bestIou = iou;
+                        bestIndex = i;
+                    }
+                }
+                // check the highest iou if it overlaps with one
+                // of the existing objects
+                if (bestIndex >= 0 && bestIou >= IOU_THRESHOLD){
+                    // if it is then replace the existing
+                    tb.dr = dt.get(bestIndex);
+                    tb.lastSeen = now;
+                    tb.misses = 0;
+                    // then mark that object, meaning it has already been integrated
+                    matched[bestIndex] = true;
+                } else {
+                    tb.misses++;
+                }
+            }
+
+
+            for (int i = 0; i < dt.size(); i++) {
+                // add only new detections if it does not overlap on previous ones
+                if (!matched[i]){
+                    previousDetections.add(new TrackedBox(dt.get(i), now));
+                }
+            }
+
+        } else {
+            // else just update the misses
+            for (TrackedBox b : previousDetections) {
+                b.misses++;
+            }
+        }
+
+        // final check for outdated objects
+        Iterator<TrackedBox> it = previousDetections.iterator();
+        while (it.hasNext()){
+            TrackedBox b = it.next();
+            long age = now - b.lastSeen;
+            // if object last long enough remove it
+            if (b.misses > MAX_MISSES || age > DETECTION_PERSIST_MS){
+                it.remove();
+            }
+        }
+
+
+        // the list of all detected objects that remained from previous
+        List<DetectionResult> res = new ArrayList<>();
+        for (TrackedBox tb : previousDetections) {
+            res.add(tb.dr);
+        }
+        return res;
+    }
+    private float iou(DetectionResult a, DetectionResult b) {
+        float ax1 = a.left;
+        float ay1 = a.top;
+        float ax2 = a.right;
+        float ay2 = a.bottom;
+
+        float bx1 = b.left;
+        float by1 = b.top;
+        float bx2 = b.right;
+        float by2 = b.bottom;
+
+        float interLeft = Math.max(ax1, bx1);
+        float interTop = Math.max(ay1, by1);
+        float interRight = Math.min(ax2, bx2);
+        float interBottom = Math.min(ay2, by2);
+        float interW = Math.max(0f, interRight - interLeft);
+        float interH = Math.max(0f, interBottom - interTop);
+        float interArea = interW * interH;
+        if (interArea <= 0f) return 0f;
+
+        float areaA = (ax2 - ax1) * (ay2 - ay1);
+        float areaB = (bx2 - bx1) * (by2 - by1);
+        return interArea / (areaA + areaB - interArea + 1e-6f);
+    }
     /**
      * Converts an Android Image object to a Bitmap for processing.
      * Reconstruict the image using pixelstride.
-     * ルビーちゃん, はいい??
      *
      * @param image The source Image from ImageReader
      * @return Bitmap of the image
@@ -300,6 +417,9 @@ public class OverlayFunctions {
             mediaProjection.stop();
             mediaProjection = null;
         }
+        if (previousDetections != null){
+            previousDetections.clear();
+        }
     }
 
     public void stopScreenCapture() {
@@ -319,11 +439,13 @@ public class OverlayFunctions {
      */
 
     public void initModel(String chosen_model) throws IOException {
-        Log.i(TAG, "the model is: "+chosen_model);
+        Log.i(TAG, "the model is: " + chosen_model);
         if (chosen_model.equals(ModelTypes.DISTILBERT_TAGALOG) || chosen_model.equals(ModelTypes.ROBERTA_TAGALOG)) {
-            textModel = new TextModel(mcontext, chosen_model);
+            textModel = new TextModel(mcontext, ModelTypes.DISTILBERT_TAGALOG);
         } else if (chosen_model.equals(ModelTypes.YOLO_V10_F16) || chosen_model.equals(ModelTypes.YOLO_V10_F32)) {
             imageModel = new ImageModel(mcontext, chosen_model);
+        } else if (chosen_model.equals(ModelTypes.LSTM)){
+            textModel = new TextModel(mcontext, chosen_model);
         }
 //        textModel = new TextModel(mcontext, ModelTypes.DISTILBERT_TAGALOG);
 //        imageModel = new ImageModel(mcontext, ModelTypes.YOLO_V10_F32);

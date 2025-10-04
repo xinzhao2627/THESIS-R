@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     Button textModel3;
     Button textModel4;
     Button textModel5;
+    Button textModel6;
 //    ArrayList<Button> textButtons;
     ArrayList<Button> buttons;
 
@@ -96,6 +97,8 @@ public class MainActivity extends AppCompatActivity {
 //        textButtons.add(textModel5);
         buttons.add(textModel5);
 
+        textModel6 = findViewById(R.id.textmodelButton6);
+        buttons.add(textModel6);
         imageModel1 = findViewById(R.id.imagemodelButton1);
         imageModel2 = findViewById(R.id.imagemodelButton2);
 
@@ -282,6 +285,20 @@ public class MainActivity extends AppCompatActivity {
                 if (s.equals("RoBERTa Tagalog")) {
 //                    chosen_text_model = roberta_tagalog_MODEL;
                     chosen_model = ModelTypes.DISTILBERT_TAGALOG;
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
+                    b.setTextColor(Color.parseColor("#FFFFFF"));
+                } else {
+                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
+                    b.setTextColor(Color.parseColor("#002D8B"));
+                }
+            }
+        });
+        textModel6.setOnClickListener(l -> {
+            for (Button b : buttons) {
+                String s = b.getText().toString();
+                if (s.equals("LSTM")) {
+//                    chosen_text_model = roberta_tagalog_MODEL;
+                    chosen_model = ModelTypes.LSTM;
                     b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
                     b.setTextColor(Color.parseColor("#FFFFFF"));
                 } else {

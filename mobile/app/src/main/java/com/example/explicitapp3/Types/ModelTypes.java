@@ -21,6 +21,13 @@ public class ModelTypes {
     public static final String[] DISTILBERT_TAGALOG_LABELARRAY = {"good", "neutral", "bad"};
 
 
+    public static final String LSTM = "lstm";
+    public static final String LSTM_MODEL = "lstm/lstm_model.tflite";
+    public static final String LSTM_TOKENIZER = "lstm/tokenizer.json";
+    public static final int LSTM_SEQ_LEN = 128;
+    public static final String[] LSTM_LABELARRAY = {"good", "nsfw"};
+
+
 
 
 }
