@@ -46,6 +46,9 @@ public class Recognizer {
                     if (top < 0) {
                         top = 0;
                     }
+                    String text = t.getValue().trim().toLowerCase();
+                    if (text.isEmpty()) continue;
+                    if (!text.matches(".*[a-zA-Z].*")) continue;
 //                    Log.w(TAG, "left: " + rect.left + " right: " + rect.right + " top: " + rect.top + " bottom: " + rect.bottom);
                     textList.add(new TextResults(rect.left, top, rect.right, rect.bottom - offset, 1, t.getValue()));
                 }

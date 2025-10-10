@@ -24,29 +24,31 @@ import com.example.explicitapp3.R;
 import com.example.explicitapp3.Types.DetectionResult;
 
 import java.util.List;
+
 /**
  * Dynamic overlay inherits views. For every N detected objects in the image,
  * there would be N instance of Canvas created, with designated coordinates of each object
- *
- * */
-public class DynamicOverlay extends View{
+ */
+public class DynamicOverlay extends View {
     Context mcontext;
 
     Paint paint;
     Paint textPaint;
     Paint blurPaint;
     List<DetectionResult> detectionResultList;
-    public DynamicOverlay (Context mcontext){
+
+    public DynamicOverlay(Context mcontext) {
         super(mcontext);
         this.mcontext = mcontext;
         init();
     }
 
-    public DynamicOverlay (Context mcontext, AttributeSet attributeSet){
+    public DynamicOverlay(Context mcontext, AttributeSet attributeSet) {
         super(mcontext, attributeSet);
         this.mcontext = mcontext;
     }
-    private void init(){
+
+    private void init() {
         paint = new Paint();
         paint.setColor(Color.RED);
         paint.setStrokeWidth(8f);
@@ -64,15 +66,17 @@ public class DynamicOverlay extends View{
 
         setLayerType(LAYER_TYPE_HARDWARE, null);
     }
-    public void setResults(List<DetectionResult> detectionResultList){
+
+    public void setResults(List<DetectionResult> detectionResultList) {
         this.detectionResultList = detectionResultList;
         invalidate();
     }
+
     @Override
-    protected void onDraw(Canvas canvas){
+    protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (detectionResultList == null) return;
-        int padding = 5;
+        int padding = 10;
 
         for (DetectionResult dr : detectionResultList) {
             float l = 0f - padding;
@@ -80,29 +84,29 @@ public class DynamicOverlay extends View{
             float r = 0f + padding;
             float b = 0f + padding;
 
-            if (dr.modelType == 0){
+            if (dr.modelType == 0) {
                 l += dr.left * getWidth();
                 t += dr.top * getHeight();
                 r += dr.right * getWidth();
                 b += dr.bottom * getHeight();
             } else {
                 l += dr.left * getWidth();
-                t += dr.top * getHeight();
+                t += dr.top * getHeight() - 90;
                 r += dr.right * getWidth();
-                b += dr.bottom * getHeight();
+                b += dr.bottom * getHeight() - 30;
             }
 
             RectF rectF = new RectF(l, t, r, b);
 
-            drawBlur(canvas,rectF);
+            drawBlur(canvas, rectF);
             canvas.drawRect(rectF, paint);
 
-            String tt = dr.modelType == 0? dr.label + " " + String.format("%.2f", dr.confidence) : ".";
+            String tt = dr.modelType == 0 ? dr.label + " " + String.format("%.2f", dr.confidence) : ".";
             canvas.drawText(tt, rectF.left, rectF.top, textPaint);
         }
     }
 
-    private void drawBlur(Canvas canvas, RectF rectF){
+    private void drawBlur(Canvas canvas, RectF rectF) {
 
         // Simple overlay blur
         Paint overlayPaint = new Paint();
@@ -115,7 +119,7 @@ public class DynamicOverlay extends View{
 
         for (float x = rectF.left; x < rectF.right; x += pixelSize) {
             for (float y = rectF.top; y < rectF.bottom; y += pixelSize) {
-                int grayValue = (int)(Math.random() * 100) + 100;
+                int grayValue = (int) (Math.random() * 100) + 100;
                 pixelPaint.setColor(Color.rgb(grayValue, grayValue, grayValue));
                 pixelPaint.setAlpha(120);
 

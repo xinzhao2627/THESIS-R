@@ -1,4 +1,4 @@
-package com.example.explicitapp3.ToolsNLP;
+package com.example.explicitapp3.ToolsNLP.Tokenizers;
 
 import android.util.Log;
 

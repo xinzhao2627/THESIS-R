@@ -4,32 +4,20 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.Log;
 
-import com.example.explicitapp3.ToolsNLP.LSTM_tokenizer;
+import com.example.explicitapp3.ToolsNLP.Tokenizers.LSTM_tokenizer;
 import com.example.explicitapp3.ToolsNLP.Recognizer;
-import com.example.explicitapp3.ToolsNLP.Roberta_tagalog_tokenizer;
-import com.example.explicitapp3.ToolsNLP.SoftmaxConverter;
 import com.example.explicitapp3.Types.DetectionResult;
 import com.example.explicitapp3.Types.ModelTypes;
 import com.example.explicitapp3.Types.TextResults;
 
 import org.tensorflow.lite.Interpreter;
-import org.tensorflow.lite.gpu.CompatibilityList;
-import org.tensorflow.lite.gpu.GpuDelegate;
-import org.tensorflow.lite.support.common.TensorProcessor;
 import org.tensorflow.lite.task.core.TaskJniUtils;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import ai.djl.huggingface.tokenizers.Encoding;
-import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
 
 public class LSTM_Detector {
     private static final String TAG = "LSTM_TAGALOG";

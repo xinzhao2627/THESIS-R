@@ -87,13 +87,9 @@ public class OverlayService extends Service {
         int rc = intent.getIntExtra("resultCode", -1);
         Intent d = intent.getParcelableExtra("data");
 
-//        String chosen_image_model_path = intent.getStringExtra("chosen_image_model_model");
-//        String chosen_image_model_labels = intent.getStringExtra("chosen_image_model_label");
-//        String chosen_text_model = intent.getStringExtra("chosen_text_model");
-        String chosen_model = intent.getStringExtra("chosen_model");
-//        Log.w(TAG, "Received models - Image: " + chosen_image_model_path);
-//        Log.w(TAG, "Received labels: " + chosen_image_model_labels);
-//        Log.w(TAG, "Received text model: " + chosen_text_model);
+        String textDetector = intent.getStringExtra("text_detector");
+        String imageDetector = intent.getStringExtra("image_detector");
+
 
         Log.w(TAG, "onStartCommand: Media projection will now start capturing");
 
@@ -108,7 +104,10 @@ public class OverlayService extends Service {
             }
             startForeground(SERVICE_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
             try {
-                overlayFunctions.initModel(chosen_model);
+                Log.i(TAG, "receiving text model: "+ textDetector);
+                Log.i(TAG, "receiving image model: "+ imageDetector);
+
+                overlayFunctions.initModel(textDetector, imageDetector);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

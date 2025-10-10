@@ -9,7 +9,11 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -23,48 +27,24 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.explicitapp3.Overlays.OverlayService;
 import com.example.explicitapp3.Types.ModelTypes;
+import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
-    public static final String YOLO_V10_F16_MODEL = "yolov10_16/yolov10n_float16.tflite";
-    public static final String YOLO_V10_F16_LABELS = "yolov10_16/labels.txt";
-
-    public static final String YOLO_V10_F32_MODEL = "yolov10_32/yolov10n_float32.tflite";
-    public static final String YOLO_V10_F32_LABELS = "yolov10_32/labels.txt";
-
-    public static final String DistilBert_Tagalog_MODEL = "distilbert_tagalog/distilbert_tagalog_classification_model.tflite";
-    public static final String xtremedistil_MODEL = "xtremedisti/xtremedistil_nsfw_safe_model.tflite";
-    public static final String dost_robert_MODEL = "dost_robert/nsfw_model.tflite";
-    public static final String xlm_roberta_MODEL = "xlm_roberta/xlm_roberta_classification_model.tflite";
-    public static final String roberta_tagalog_MODEL = "roberta_tagalog/roberta_tagalog_nsfw_model.tflite";
-
-
-//    String chosen_text_model = "";
-//    String[] chosen_image_model = {"", ""};
-    String chosen_model = "";
-
     Button runAppButton;
     Button overlayPermissionButton;
-
-    Button textModel1;
-    Button textModel2;
-    Button textModel3;
-    Button textModel4;
-    Button textModel5;
-    Button textModel6;
-//    ArrayList<Button> textButtons;
-    ArrayList<Button> buttons;
-
-    Button imageModel1;
-    Button imageModel2;
-//    ArrayList<Button> imageButtons;
-
     MediaProjectionManager mediaProjectionManager;
     ActivityResultLauncher<Intent> overlayPermissionLauncher;
     ActivityResultLauncher<Intent> mediaProjectionLauncher;
     public static final String TAG = "MainActivity";
     boolean isServiceRunning = false;
+    final String[] options = {"dynamic", "static"};
+    final String[] tmo = {"none", ModelTypes.LogisticRegression, ModelTypes.LSTM, ModelTypes.NaiveBayes, ModelTypes.SVM, ModelTypes.DISTILBERT_TAGALOG, ModelTypes.ROBERTA_TAGALOG};
+    final String[] imo = {"none", ModelTypes.YOLO_V10_F16};
+    String imageDetector;
+    String textDetector;
+    String selectedOption;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,40 +56,13 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-
-//        imageButtons = new ArrayList<>();
-//        textButtons = new ArrayList<>();
-        buttons = new ArrayList<>();
-
-        textModel1 = findViewById(R.id.textmodelButton1);
-//        textButtons.add(textModel1);
-        buttons.add(textModel1);
-        textModel2 = findViewById(R.id.textmodelButton2);
-//        textButtons.add(textModel2);
-        buttons.add(textModel2);
-        textModel3 = findViewById(R.id.textmodelButton3);
-//        textButtons.add(textModel3);
-        buttons.add(textModel3);
-        textModel4 = findViewById(R.id.textmodelButton4);
-//        textButtons.add(textModel4);
-        buttons.add(textModel4);
-        textModel5 = findViewById(R.id.textmodelButton5);
-//        textButtons.add(textModel5);
-        buttons.add(textModel5);
-
-        textModel6 = findViewById(R.id.textmodelButton6);
-        buttons.add(textModel6);
-        imageModel1 = findViewById(R.id.imagemodelButton1);
-        imageModel2 = findViewById(R.id.imagemodelButton2);
-
-//        imageButtons.add(imageModel1);
-//        imageButtons.add(imageModel2);
-        buttons.add(imageModel1);
-        buttons.add(imageModel2);
-
         runAppButton = findViewById(R.id.runAppButton);
         overlayPermissionButton = findViewById(R.id.overlayPermissionButton);
         mediaProjectionManager = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
+        overlayDropdownSetup();
+        textModelDropdownSetup();
+        imageModelDropdownSetup();
+
 
         /**
          * Configures the overlay permission launcher to handle user responses to overlay permission requests.
@@ -167,6 +120,13 @@ public class MainActivity extends AppCompatActivity {
          * @see ContextCompat#startForegroundService(Context, Intent)
          */
         mediaProjectionLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), r -> {
+            boolean textModelEmpty = textDetector.equals("none") || textDetector.isEmpty();
+            boolean imageModelEmpty = imageDetector.equals("none") || imageDetector.isEmpty();
+            if (textModelEmpty && imageModelEmpty) {
+                Toast.makeText(this, "please at least 1 model", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             int resultCode = r.getResultCode();
             Intent data = r.getData();
 
@@ -176,22 +136,13 @@ public class MainActivity extends AppCompatActivity {
             if (resultCode == Activity.RESULT_OK) {
                 // Permission granted
                 try {
-//                    if (chosen_image_model[0].isEmpty() || chosen_image_model[1].isEmpty() || chosen_text_model.isEmpty()) {
-//                        Toast.makeText(this, "Please choose image and text models", Toast.LENGTH_SHORT).show();
-//                        return;
-//                    }
-                    if (chosen_model.isEmpty()) {
-                        Toast.makeText(this, "Please choose image and text models", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
+
                     Intent serviceIntent = new Intent(this, OverlayService.class);
                     serviceIntent.putExtra("resultCode", resultCode);
                     serviceIntent.putExtra("data", data);
 
-//                    serviceIntent.putExtra("chosen_image_model_model", chosen_image_model[0]);
-//                    serviceIntent.putExtra("chosen_image_model_label", chosen_image_model[1]);
-//                    serviceIntent.putExtra("chosen_text_model", chosen_text_model);
-                    serviceIntent.putExtra("chosen_model", chosen_model);
+                    serviceIntent.putExtra("image_detector", imageDetector);
+                    serviceIntent.putExtra("text_detector", textDetector);
 
                     Log.d(TAG, "Starting service with resultCode: " + resultCode);
                     Log.d(TAG, "Starting service with data: " + data);
@@ -223,119 +174,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        textModel1.setOnClickListener(l -> {
-            for (Button b : buttons) {
-                String s = b.getText().toString();
-                if (s.equals("DistilBERT Tagalog")) {
-//                    chosen_text_model = DistilBert_Tagalog_MODEL;
-                    chosen_model = ModelTypes.DISTILBERT_TAGALOG;
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
-                    b.setTextColor(Color.parseColor("#FFFFFF"));
-                } else {
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
-                    b.setTextColor(Color.parseColor("#002D8B"));
-                }
-            }
-        });
-        textModel2.setOnClickListener(l -> {
-            for (Button b : buttons) {
-                String s = b.getText().toString();
-                if (s.equals("MSX DistilBERT")) {
-//                    chosen_text_model = xtremedistil_MODEL;
-                    chosen_model = ModelTypes.DISTILBERT_TAGALOG;
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
-                    b.setTextColor(Color.parseColor("#FFFFFF"));
-                } else {
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
-                    b.setTextColor(Color.parseColor("#002D8B"));
-                }
-            }
-        });
-        textModel3.setOnClickListener(l -> {
-            for (Button b : buttons) {
-                String s = b.getText().toString();
-                if (s.equals("DOST RoBERTa")) {
-//                    chosen_text_model = dost_robert_MODEL;
-                    chosen_model = ModelTypes.DISTILBERT_TAGALOG;
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
-                    b.setTextColor(Color.parseColor("#FFFFFF"));
-                } else {
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
-                    b.setTextColor(Color.parseColor("#002D8B"));
-                }
-            }
-        });
-        textModel4.setOnClickListener(l -> {
-            for (Button b : buttons) {
-                String s = b.getText().toString();
-                if (s.equals("XLM RoBERTa")) {
-//                    chosen_text_model = xlm_roberta_MODEL;
-                    chosen_model = ModelTypes.DISTILBERT_TAGALOG;
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
-                    b.setTextColor(Color.parseColor("#FFFFFF"));
-                } else {
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
-                    b.setTextColor(Color.parseColor("#002D8B"));
-                }
-            }
-        });
-        textModel5.setOnClickListener(l -> {
-            for (Button b : buttons) {
-                String s = b.getText().toString();
-                if (s.equals("RoBERTa Tagalog")) {
-//                    chosen_text_model = roberta_tagalog_MODEL;
-                    chosen_model = ModelTypes.DISTILBERT_TAGALOG;
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
-                    b.setTextColor(Color.parseColor("#FFFFFF"));
-                } else {
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
-                    b.setTextColor(Color.parseColor("#002D8B"));
-                }
-            }
-        });
-        textModel6.setOnClickListener(l -> {
-            for (Button b : buttons) {
-                String s = b.getText().toString();
-                if (s.equals("LSTM")) {
-//                    chosen_text_model = roberta_tagalog_MODEL;
-                    chosen_model = ModelTypes.LSTM;
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
-                    b.setTextColor(Color.parseColor("#FFFFFF"));
-                } else {
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
-                    b.setTextColor(Color.parseColor("#002D8B"));
-                }
-            }
-        });
-
-        imageModel1.setOnClickListener(l -> {
-            for (Button b : buttons) {
-                String s = b.getText().toString();
-                if (s.equals("Yolov10n_32f")) {
-//                    chosen_image_model = new String[]{YOLO_V10_F32_MODEL, YOLO_V10_F32_LABELS};
-                    chosen_model = ModelTypes.YOLO_V10_F32;
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
-                    b.setTextColor(Color.parseColor("#FFFFFF"));
-                } else {
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
-                    b.setTextColor(Color.parseColor("#002D8B"));
-                }
-            }
-        });
-        imageModel2.setOnClickListener(l -> {
-            for (Button b : buttons) {
-                String s = b.getText().toString();
-                if (s.equals("Yolov10n_16f")) {
-//                    chosen_image_model = new String[]{YOLO_V10_F16_MODEL, YOLO_V10_F16_LABELS};
-                    chosen_model = ModelTypes.YOLO_V10_F16;
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.buttonSelected));
-                    b.setTextColor(Color.parseColor("#FFFFFF"));
-                } else {
-                    b.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.white));
-                    b.setTextColor(Color.parseColor("#002D8B"));
-                }
-            }
-        });
     }
 
     private void stopOverlayService() {
@@ -346,6 +184,65 @@ public class MainActivity extends AppCompatActivity {
         isServiceRunning = false;
         runAppButton.setText("Start");
 
+    }
+
+    private void overlayDropdownSetup() {
+        Spinner overlaySpinner = findViewById(R.id.overlaySpinner);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, options);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        overlaySpinner.setAdapter(adapter);
+
+        overlaySpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String selected = options[position];
+                Log.d(TAG, "Selected overlay type: " + selected);
+                selectedOption = selected;
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+    }
+
+    private void textModelDropdownSetup() {
+        Spinner textSpinner = findViewById(R.id.textSpinner);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, tmo);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        textSpinner.setAdapter(adapter);
+
+        textSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String selected = tmo[position];
+                Log.d(TAG, "Selected text model type: " + selected);
+                textDetector = selected;
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+    }
+
+    private void imageModelDropdownSetup() {
+        Spinner imageSpinner = findViewById(R.id.imageSpinner);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, imo);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        imageSpinner.setAdapter(adapter);
+        imageSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String selected = imo[position];
+                Log.d(TAG, "Selected image model type: " + selected);
+                imageDetector = selected;
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
     }
 
 

@@ -1,4 +1,4 @@
-package com.example.explicitapp3.ToolsNLP;
+package com.example.explicitapp3.ToolsNLP.Tokenizers;
 
 import android.util.Log;
 
@@ -6,7 +6,6 @@ import com.example.explicitapp3.Types.ModelTypes;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONArray;
 
 import java.io.InputStream;
 import java.util.*;

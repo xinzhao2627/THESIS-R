@@ -190,8 +190,6 @@ public class OverlayFunctions {
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
 
-
-//        Log.i(TAG, "Function took: " + duration + " ms");
         // display faster??
         if (dynamicOverlay != null) {
             new Handler(mcontext.getMainLooper()).post(() -> {
@@ -206,12 +204,12 @@ public class OverlayFunctions {
             // this var tracks all the new overlaps, we dont include overlaps
             boolean[] matched = new boolean[dt.size()];
 
-            for (TrackedBox tb: previousDetections){
+            for (TrackedBox tb : previousDetections) {
                 int bestIndex = -1;
                 float bestIou = 0f;
 
                 // loop all the new objects and find the highest iou
-                for (int i = 0; i < dt.size(); i++){
+                for (int i = 0; i < dt.size(); i++) {
                     if (matched[i]) continue;
                     DetectionResult c = dt.get(i);
                     // skip if we are comparing image to text
@@ -220,14 +218,14 @@ public class OverlayFunctions {
                     // a high iou means one of the old object
                     // is similar to the new one
                     float iou = iou(tb.dr, c);
-                    if (iou > bestIou){
+                    if (iou > bestIou) {
                         bestIou = iou;
                         bestIndex = i;
                     }
                 }
                 // check the highest iou if it overlaps with one
                 // of the existing objects
-                if (bestIndex >= 0 && bestIou >= IOU_THRESHOLD){
+                if (bestIndex >= 0 && bestIou >= IOU_THRESHOLD) {
                     // if it is then replace the existing
                     tb.dr = dt.get(bestIndex);
                     tb.lastSeen = now;
@@ -242,7 +240,7 @@ public class OverlayFunctions {
 
             for (int i = 0; i < dt.size(); i++) {
                 // add only new detections if it does not overlap on previous ones
-                if (!matched[i]){
+                if (!matched[i]) {
                     previousDetections.add(new TrackedBox(dt.get(i), now));
                 }
             }
@@ -256,11 +254,11 @@ public class OverlayFunctions {
 
         // final check for outdated objects
         Iterator<TrackedBox> it = previousDetections.iterator();
-        while (it.hasNext()){
+        while (it.hasNext()) {
             TrackedBox b = it.next();
             long age = now - b.lastSeen;
             // if object last long enough remove it
-            if (b.misses > MAX_MISSES || age > DETECTION_PERSIST_MS){
+            if (b.misses > MAX_MISSES || age > DETECTION_PERSIST_MS) {
                 it.remove();
             }
         }
@@ -273,6 +271,7 @@ public class OverlayFunctions {
         }
         return res;
     }
+
     private float iou(DetectionResult a, DetectionResult b) {
         float ax1 = a.left;
         float ay1 = a.top;
@@ -297,6 +296,7 @@ public class OverlayFunctions {
         float areaB = (bx2 - bx1) * (by2 - by1);
         return interArea / (areaA + areaB - interArea + 1e-6f);
     }
+
     /**
      * Converts an Android Image object to a Bitmap for processing.
      * Reconstruict the image using pixelstride.
@@ -417,7 +417,7 @@ public class OverlayFunctions {
             mediaProjection.stop();
             mediaProjection = null;
         }
-        if (previousDetections != null){
+        if (previousDetections != null) {
             previousDetections.clear();
         }
     }
@@ -438,17 +438,22 @@ public class OverlayFunctions {
      * @apiNote Currently uses the exported NSFW model with metadata
      */
 
-    public void initModel(String chosen_model) throws IOException {
-        Log.i(TAG, "the model is: " + chosen_model);
-        if (chosen_model.equals(ModelTypes.DISTILBERT_TAGALOG) || chosen_model.equals(ModelTypes.ROBERTA_TAGALOG)) {
-            textModel = new TextModel(mcontext, ModelTypes.DISTILBERT_TAGALOG);
-        } else if (chosen_model.equals(ModelTypes.YOLO_V10_F16) || chosen_model.equals(ModelTypes.YOLO_V10_F32)) {
-            imageModel = new ImageModel(mcontext, chosen_model);
-        } else if (chosen_model.equals(ModelTypes.LSTM)){
-            textModel = new TextModel(mcontext, chosen_model);
+    public void initModel(String textDetector, String imageDetector) throws IOException {
+        boolean isID = imageDetector.equals(ModelTypes.YOLO_V10_F32) || imageDetector.equals(ModelTypes.YOLO_V10_F16);
+
+        boolean isTD = textDetector.equals(ModelTypes.LSTM)
+                || textDetector.equals(ModelTypes.NaiveBayes)
+                || textDetector.equals(ModelTypes.LogisticRegression)
+                || textDetector.equals(ModelTypes.ROBERTA_TAGALOG)
+                || textDetector.equals(ModelTypes.DISTILBERT_TAGALOG)
+                || textDetector.equals(ModelTypes.SVM);
+        if (isID){
+            imageModel = new ImageModel(mcontext, imageDetector);
         }
-//        textModel = new TextModel(mcontext, ModelTypes.DISTILBERT_TAGALOG);
-//        imageModel = new ImageModel(mcontext, ModelTypes.YOLO_V10_F32);
+        if (isTD){
+            textModel = new TextModel(mcontext, textDetector);
+
+        }
     }
 
     /**

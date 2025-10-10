@@ -27,7 +27,18 @@ public class ModelTypes {
     public static final int LSTM_SEQ_LEN = 128;
     public static final String[] LSTM_LABELARRAY = {"good", "nsfw"};
 
+    public static final String LogisticRegression = "logistic_regression";
+    public static final String LogisticRegression_TOKENIZER = "logistic_regression/tokenizer.json";
+    public static final int LogisticRegression_SEQ_LEN = 1000;
+    public static final String[] LogisticRegression_LABELARRAY = {"safe", "nsfw"};
 
+    public static final String NaiveBayes = "naive_bayes";
+    public static final String NaiveBayes_TOKENIZER = "naive_bayes/tokenizer.json";
+    public static final int NaiveBayes_SEQ_LEN = 1000;
+    public static final String[] NaiveBayes_LABELARRAY = {"safe", "nsfw"};
 
-
+    public static final String SVM = "svm";
+    public static final String SVM_TOKENIZER = "svm/tokenizer.json";
+    public static final int SVM_SEQ_LEN = 1000;
+    public static final String[] SVM_LABELARRAY = {"safe", "nsfw"};
 }
