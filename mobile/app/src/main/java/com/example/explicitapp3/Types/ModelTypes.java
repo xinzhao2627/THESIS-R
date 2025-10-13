@@ -7,6 +7,10 @@ public class ModelTypes {
     public static final String YOLO_V10_F32= "yolov10_32";
     public static final String YOLO_V10_F32_MODEL = "yolov10n_float32.tflite";
 
+    public static final String MOBILENET_SSD = "mobilenet_ssd";
+    public static final String MOBILENET_SSD_MODEL = "mobilenet_ssd.tflite";
+
+
     public static final String ROBERTA_TAGALOG = "roberta_tagalog";
     public static final String ROBERTA_TAGALOG_MODEL = "roberta_tagalog_nsfw_model.tflite";
     public static final String[] ROBERTA_TAGALOG_LABELARRAY = {"safe", "nsfw"};
@@ -41,4 +45,5 @@ public class ModelTypes {
     public static final String SVM_TOKENIZER = "svm/tokenizer.json";
     public static final int SVM_SEQ_LEN = 1000;
     public static final String[] SVM_LABELARRAY = {"safe", "nsfw"};
+
 }
