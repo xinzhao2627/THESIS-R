@@ -12,6 +12,7 @@ import java.io.IOException;
 public class ImageModel {
     private static final String TAG = "ImageModel";
     YoloV10Detector yoloV10Detector;
+    MobileNet_ssd_Detector;
     Context mcontext;
     String selectedModel;
     public ImageModel (Context mcontext, String name) throws IOException {
@@ -32,19 +33,28 @@ public class ImageModel {
                     ModelTypes.YOLO_V10_F32 + "/" + "labels.txt"
             );
             Log.i(TAG, name);
-        }
+        } else if (name.equals(ModelTypes.MOBILENET_SSD)){
+        mobilenetSsdDetector = new MobileNet_ssd_Detector(mcontext, ModelTypes.MOBILENET_SSD + "/" + ModelTypes.MOBILENET_SSD_MODEL,
+ModelTypes.MOBILENET_SSD + "/" + "labels.txt");
+}
     }
 
     public ClassifyResults detect(Bitmap bitmap){
+if (selectedModel.equals(ModelTypes.YOLO_V10_F32) || selectedModel.equals(ModelTypes.YOLO_V10_F16)){
+return yoloV10Detector.detect(bitmap);
+} else if (name.equals(ModelTypes.MOBILENET_SSD)){
         Log.i(TAG, "detecting image");
-        return yoloV10Detector.detect(bitmap);
-    }
-
+        return mobilenetSsdDetector.detect(bitmap);
+} return null;
+}
     public void cleanup(){
         if (yoloV10Detector != null){
             yoloV10Detector.cleanup();
             yoloV10Detector = null;
-        }
+        } else if (mobilenetSsdDetector != null{
+mobilenetSsdDetector.cleanup();
+mobilenetSsdDetector = null;
+}
 
     }
 
