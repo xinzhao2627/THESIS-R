@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
     boolean isServiceRunning = false;
     final String[] options = {"dynamic", "static"};
     final String[] tmo = {"none", ModelTypes.LogisticRegression, ModelTypes.LSTM, ModelTypes.NaiveBayes, ModelTypes.SVM, ModelTypes.DISTILBERT_TAGALOG, ModelTypes.ROBERTA_TAGALOG};
-    final String[] imo = {"none", ModelTypes.YOLO_V10_F16};
+    final String[] imo = {"none", ModelTypes.YOLO_V10_F16, ModelTypes.MOBILENET_SSD, ModelTypes.EFFICIENTDET};
     String imageDetector;
     String textDetector;
     String selectedOption;
