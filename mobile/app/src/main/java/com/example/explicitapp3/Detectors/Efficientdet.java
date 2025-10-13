@@ -35,7 +35,7 @@ import org.tensorflow.lite.gpu.GpuDelegate;
 
 // The total time complexity of this class is:
 //
-public class Mobilenet_ssd_Detector {
+public class Efficientdet_Detector {
     Context context;
     public final String TAG = "YoloV10Detector";
     String MODEL_PATH;
@@ -50,10 +50,10 @@ public class Mobilenet_ssd_Detector {
     int tensorHeight = 0;
     int numChannel = 0;
     int numElements = 0;
-    public Mobilenet_ssd_Detector(Context context, String chosen_image_model, String chosen_image_label) throws IOException {
+    public Efficientdet_Detector(Context context, String chosen_image_model, String chosen_image_label) throws IOException {
         MODEL_PATH = chosen_image_model;
         LABELS_PATH = chosen_image_label;
-        Log.w(TAG, "Mobilenet Detector: Yolo initialized");
+        Log.w(TAG, "Efficientdet Detector: efficient initialized");
         long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 
         ByteBuffer model = FileUtil.loadMappedFile(context, MODEL_PATH);
