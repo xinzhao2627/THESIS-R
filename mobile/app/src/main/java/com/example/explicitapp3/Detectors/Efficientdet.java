@@ -1,0 +1,1 @@
+return yoloV10Detector.detect(bitmap);
