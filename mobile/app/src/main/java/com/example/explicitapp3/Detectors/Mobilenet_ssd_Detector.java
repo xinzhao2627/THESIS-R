@@ -50,18 +50,11 @@ public class Mobilenet_ssd_Detector {
     int tensorHeight = 0;
     int numChannel = 0;
     int numElements = 0;
-    ImageProcessor imageProcessor;
     public Mobilenet_ssd_Detector(Context context, String chosen_image_model, String chosen_image_label) throws IOException {
         MODEL_PATH = chosen_image_model;
         LABELS_PATH = chosen_image_label;
         Log.w(TAG, "Mobilenet Detector: Yolo initialized");
         long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-
-        imageProcessor = new ImageProcessor.Builder()
-                .add(new NormalizeOp(0f, 255f))
-                //THIS IS Float32
-                .add(new CastOp(INPUT_IMAGE_TYPE))
-                .build();
 
         ByteBuffer model = FileUtil.loadMappedFile(context, MODEL_PATH);
         Interpreter.Options options = new Interpreter.Options();
@@ -78,7 +71,6 @@ public class Mobilenet_ssd_Detector {
             options.setNumThreads(Runtime.getRuntime().availableProcessors());
         }
 
-
         interpreter = new Interpreter(model, options);
 
         // POPULATE LABELS LIST
@@ -92,10 +84,7 @@ public class Mobilenet_ssd_Detector {
             }
             bufferedReader.close();
         }
-
         int[] inputShape = interpreter.getInputTensor(0).shape();
-        int[] outputShape = interpreter.getOutputTensor(0).shape();
-
         if (inputShape != null) {
             // the width and height of the input
             tensorWidth = inputShape[1];
@@ -106,12 +95,6 @@ public class Mobilenet_ssd_Detector {
                 tensorHeight = inputShape[3];
             }
         }
-        if (outputShape != null) {
-            numElements = outputShape[1];
-            numChannel = outputShape[2];
-        }
-        Log.w(TAG, "Numchannel: " + numChannel);
-        Log.w(TAG, "Numelements: " + numElements);
         Log.w(TAG, "tensorWidth: " + tensorWidth);
         Log.w(TAG, "tensorHeight: " + tensorHeight);
 
@@ -119,118 +102,44 @@ public class Mobilenet_ssd_Detector {
         Log.d(TAG, "Memory allocated in YoloV10Detector(): " + (memEnd - memStart) + " bytes");
     }
 
-    // resize the image to fit in the interpreter model
-    // TIME COMPLEXITY: O(WxH) or O(640x640) = constant = O(R)
     public ResizeResult resize(Bitmap bitmap) {
-        long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-
-
         Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, tensorWidth, tensorHeight, false);
         TensorImage tensorImage = new TensorImage(INPUT_IMAGE_TYPE);
         tensorImage.load(resizedBitmap);
-        TensorImage processedImage = imageProcessor.process(tensorImage);
-
-
         long memEnd = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-        Log.d(TAG, "Memory allocated in resize(): " + (memEnd - memStart) + " bytes");
-        return new ResizeResult(processedImage.getBuffer(), resizedBitmap);
-
-
+        return new ResizeResult(tensorImage.getBuffer(), resizedBitmap);
     }
 
-    // O(R + I + B)
-    // R = Resize function
-    // I = interpreter
-    // B = getBoundsList
+
     public ClassifyResults detect(Bitmap bitmap) {
         long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 
         ResizeResult resizeResult = resize(bitmap);
-        TensorBuffer output = TensorBuffer.createFixedSize(
-                new int[]{1, numElements, numChannel},
-                // this is float32
-                OUTPUT_IMAGE_TYPE
-        );
-//        Log.i(TAG, "getBoundsList: predicting...");
-        interpreter.run(resizeResult.buffer, output.getBuffer());
-        List<DetectionResult> detectionResultList = getBoundsList(bitmap, output.getFloatArray());
-
-
-        long memEnd = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-        Log.d(TAG, "Memory allocated in detect(): " + (memEnd - memStart) + " bytes");
+        float[][][] boxes = new float[1][10][4];
+        float[][] scores = new float[1][10];
+        float[][] classes = new float[1][10];
+        float[] numDetections = new float[1];
+        Map<Integer, Object> output = new HashMap<>();
+        output.put(0, boxes);
+        output.put(1, classes);
+        output.put(2, scores);
+        output.put(3, numDetections);
+        interpreter.runForMultipleInputsOutputs(resizeResult.buffer, outputs);
+        List<DetectionResults> detectionsResults = new ArrayList<>();
+        int count = Math.min(10, (int) numDetections[0]);
+        for (int i = 0; i < count; i++) {
+            int score = scores[0][i];
+            if (score > CONFIDENCE_THRESHOLD) {
+                int labelId = (int) classes[0][i];
+                String label = labelId < labels.size() ? labels.get(labelId) : "Unknown";
+                float ymin = boxes[0][i][0];
+                float xmin = boxes[0][i][1];
+                float ymax = boxes[0][i][2];
+                float xmax = boxes[0][i][3];
+                detectionResults.add(new DetectionResult(labelId, score, xmin, ymin, xmax, ymax, label, 0));  
+            } 
+        }
         return new ClassifyResults(resizeResult.resizedBitmap, detectionResultList);
-
-
-    }
-
-
-    // O(N) = B
-    // N = loop of numElements, usually between 3 to 3 digits
-    public List<DetectionResult> getBoundsList(Bitmap bitmap, float[] predictions) {
-        Log.w(TAG, "getBoundsList: getting bounds" );
-        long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-
-        List<DetectionResult> detectionResults = new ArrayList<>();
-
-        for (int i = 0; i < numElements; i++) {
-            int offset = i * numChannel;
-            float confidence = predictions[offset + 4];
-            if (confidence > CONFIDENCE_THRESHOLD) {
-                float x = predictions[offset];
-                float y = predictions[offset + 1];
-                float w = predictions[offset + 2];
-                float h = predictions[offset + 3];
-
-                int labelId = (int) predictions[offset + 5];
-                String label = labels.get(labelId);
-                Log.w(TAG, "label: " + label + " confidence: " + confidence);
-                detectionResults.add(new DetectionResult(
-                        labelId, confidence,
-                        x, y, w, h,
-                        label,
-                        0
-                ));
-            }
-        }
-        long memEnd = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-        Log.d(TAG, "Memory allocated in getBoundsList(): " + (memEnd - memStart) + " bytes");
-        return detectionResults;
-    }
-
-    // The time complexity of drawBoxes() O(D) depends on the detectionResults, which came
-    // from the getsBoundsList, therefore O(D) is omitted in N + D since D < B
-    public Bitmap drawBoxes(Bitmap bitmap, List<DetectionResult> detectionResults) {
-        long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-
-        Bitmap mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
-        Canvas canvas = new Canvas(mutableBitmap);
-        Paint paint = new Paint();
-        paint.setColor(Color.RED);
-        paint.setStrokeWidth(8f);
-        paint.setStyle(Paint.Style.STROKE);
-
-        Paint textPaint = new Paint();
-        textPaint.setColor(Color.YELLOW);
-        textPaint.setTextSize(40f);
-        textPaint.setTypeface(Typeface.DEFAULT_BOLD);
-
-        Log.w(TAG, "bitmap width: " + bitmap.getWidth() + " bitmap height: " + bitmap.getHeight());
-        int padding = 5;
-        for (DetectionResult dr : detectionResults) {
-            float l = dr.left * bitmap.getWidth() - padding;
-            float t = dr.top * bitmap.getHeight() - padding;
-            float r = dr.right * bitmap.getWidth() + padding;
-            float b = dr.bottom * bitmap.getHeight() + padding;
-
-            RectF rectF = new RectF(l, t, r, b);
-
-            canvas.drawRect(rectF, paint);
-            String tt = dr.label + " " + String.format("%.2f", dr.confidence);
-            canvas.drawText(tt, rectF.left, rectF.top, textPaint);
-        }
-        long memEnd = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-        Log.d(TAG, "Memory allocated in getBoundsList(): " + (memEnd - memStart) + " bytes");
-        return mutableBitmap;
     }
 
     public void cleanup() {
