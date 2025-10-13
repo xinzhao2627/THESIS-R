@@ -10,6 +10,9 @@ public class ModelTypes {
     public static final String MOBILENET_SSD = "mobilenet_ssd";
     public static final String MOBILENET_SSD_MODEL = "mobilenet_ssd.tflite";
 
+    public static final String EFFICIENTDET = "efficientdet";
+    public static final String EFFICIENTDET_MODEL = "efficient.tflite";
+
 
     public static final String ROBERTA_TAGALOG = "roberta_tagalog";
     public static final String ROBERTA_TAGALOG_MODEL = "roberta_tagalog_nsfw_model.tflite";
