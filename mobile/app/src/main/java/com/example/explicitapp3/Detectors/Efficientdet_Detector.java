@@ -28,7 +28,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.tensorflow.lite.gpu.CompatibilityList;
 import org.tensorflow.lite.gpu.GpuDelegate;
@@ -124,11 +126,12 @@ public class Efficientdet_Detector {
         output.put(1, classes);
         output.put(2, scores);
         output.put(3, numDetections);
-        interpreter.runForMultipleInputsOutputs(resizeResult.buffer, outputs);
-        List<DetectionResults> detectionsResults = new ArrayList<>();
+        Object[] inputArray = { resizeResult.buffer };
+        interpreter.runForMultipleInputsOutputs(inputArray, output);
+        List<DetectionResult> detectionsResults = new ArrayList<>();
         int count = Math.min(10, (int) numDetections[0]);
         for (int i = 0; i < count; i++) {
-            int score = scores[0][i];
+            int score = (int) scores[0][i];
             if (score > CONFIDENCE_THRESHOLD) {
                 int labelId = (int) classes[0][i];
                 String label = labelId < labels.size() ? labels.get(labelId) : "Unknown";
@@ -136,10 +139,10 @@ public class Efficientdet_Detector {
                 float xmin = boxes[0][i][1];
                 float ymax = boxes[0][i][2];
                 float xmax = boxes[0][i][3];
-                detectionResults.add(new DetectionResult(labelId, score, xmin, ymin, xmax, ymax, label, 0));  
-            } 
+                detectionsResults.add(new DetectionResult(labelId, score, xmin, ymin, xmax, ymax, label, 0));
+            }
         }
-        return new ClassifyResults(resizeResult.resizedBitmap, detectionResultList);
+        return new ClassifyResults(resizeResult.resizedBitmap, detectionsResults);
     }
 
     public void cleanup() {
@@ -152,7 +155,5 @@ public class Efficientdet_Detector {
             labels.clear();
             labels = null;
         }
-
-        imageProcessor = null;
     }
 }
