@@ -79,24 +79,27 @@ public class LSTM_Detector {
             debugInput(t.textContent, inputIds, attentionMask);
             float[][] output = runInference(inputIds, attentionMask);
             float max_cfs = output[0][0];
-            String l = max_cfs > 0.5 ? LABELS[1]: LABELS[0];
+            String l = max_cfs > 0.5 ? LABELS[1] : LABELS[0];
             Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
             Log.i(TAG, "label: " + l + "  max cfs: " + max_cfs);
-            detectionResultList.add(new DetectionResult(
-                    0,
-                    max_cfs,
-                    t.left / bitmap.getWidth(),
-                    t.top / bitmap.getHeight(),
-                    t.right / bitmap.getWidth(),
-                    t.bottom / bitmap.getHeight(),
-                    l,
-                    1
-            ));
             Log.i(TAG, "\n");
+            if (l.equals(LABELS[1])) {
+                detectionResultList.add(new DetectionResult(
+                        0,
+                        max_cfs,
+                        t.left / bitmap.getWidth(),
+                        t.top / bitmap.getHeight(),
+                        t.right / bitmap.getWidth(),
+                        t.bottom / bitmap.getHeight(),
+                        l,
+                        1
+                ));
+            }
+
+
         }
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
-//        Log.i(TAG, "this for loop took: " + duration + " ms");
         return detectionResultList;
     }
 
@@ -104,7 +107,7 @@ public class LSTM_Detector {
         ids = new int[1][ModelTypes.LSTM_SEQ_LEN];
         mask = new int[1][ModelTypes.LSTM_SEQ_LEN];
         int[] outputShape = interpreter.getOutputTensor(0).shape();
-        Log.i(TAG, "initBuffers: output shape[0]"+outputShape[0] + " outputshape[1]: "+outputShape[1]);
+        Log.i(TAG, "initBuffers: output shape[0]" + outputShape[0] + " outputshape[1]: " + outputShape[1]);
         outputs = new float[outputShape[0]][outputShape[1]];
     }
 
@@ -112,7 +115,7 @@ public class LSTM_Detector {
         long startTime = System.currentTimeMillis();
         int seqLen = inputIds.length;
 
-        float[][] newInput = new float [1][seqLen];
+        float[][] newInput = new float[1][seqLen];
 
         for (int i = 0; i < seqLen; i++) {
             newInput[0][i] = (float) inputIds[i];

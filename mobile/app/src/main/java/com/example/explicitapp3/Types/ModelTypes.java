@@ -1,7 +1,7 @@
 package com.example.explicitapp3.Types;
 
 public class ModelTypes {
-    public static final String YOLO_V10_F16 = "yolov10_32";
+    public static final String YOLO_V10_F16 = "yolov10_16";
     public static final String YOLO_V10_F16_MODEL = "yolov10n_float16.tflite";
 
     public static final String YOLO_V10_F32= "yolov10_32";
