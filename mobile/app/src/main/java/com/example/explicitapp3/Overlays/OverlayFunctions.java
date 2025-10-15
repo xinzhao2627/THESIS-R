@@ -60,10 +60,11 @@ public class OverlayFunctions {
     private static final String TAG = "OverlayFunctions";
 
     List<TrackedBox> previousDetections = new ArrayList<>();
-    long DETECTION_PERSIST_MS = 600;
-    int MAX_MISSES = 10;
+    long DETECTION_PERSIST_MS = 1000;
+    int MAX_MISSES = 20;
     float IOU_THRESHOLD = 0.45f;
 
+    DynamicView dynamicView;
     private static class TrackedBox {
         DetectionResult dr;
         long lastSeen;
@@ -163,16 +164,19 @@ public class OverlayFunctions {
     }
 
     public void setupDynamicOverlay() {
-        dynamicOverlay = new DynamicOverlay(mcontext);
-        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.MATCH_PARENT,
-                WindowManager.LayoutParams.MATCH_PARENT,
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                        | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                PixelFormat.TRANSLUCENT
-        );
-        wm.addView(dynamicOverlay, params);
+        dynamicView = new DynamicView(mcontext, wm);
+
+//        dynamicOverlay = new DynamicOverlay(mcontext);
+//        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+//                WindowManager.LayoutParams.MATCH_PARENT,
+//                WindowManager.LayoutParams.MATCH_PARENT,
+//                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+//                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+//                        | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+//                ,
+//                PixelFormat.TRANSLUCENT
+//        );
+//        wm.addView(dynamicOverlay, params);
     }
 
     private void processImageAsync(Bitmap bitmap) {
@@ -186,14 +190,27 @@ public class OverlayFunctions {
             List<DetectionResult> dt_text = textModel.detect(bitmap);
             dt.addAll(dt_text);
         }
-        List<DetectionResult> toBlur = updateTracking(dt, startTime);
+//        List<DetectionResult> toBlur = updateTracking(dt, startTime);
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
 
         // display faster??
-        if (dynamicOverlay != null) {
+//        if (dynamicOverlay != null) {
+//            new Handler(mcontext.getMainLooper()).post(() -> {
+//                dynamicOverlay.setResults(toBlur);
+//            });
+//        }
+
+
+
+        if (dynamicView != null) {
             new Handler(mcontext.getMainLooper()).post(() -> {
-                dynamicOverlay.setResults(toBlur);
+                while (dt.size() > 4) {
+                    dt.remove(dt.size() - 1);
+                }
+//                dynamicView.clearDetectionOverlays();
+                dynamicView.updateDetections(dt);
+//                dynamicView.setAllView();
             });
         }
     }
@@ -420,6 +437,11 @@ public class OverlayFunctions {
         if (previousDetections != null) {
             previousDetections.clear();
         }
+
+        if (dynamicView != null) {
+            dynamicView.clearDetectionOverlays();
+            dynamicView = null;
+        }
     }
 
     public void stopScreenCapture() {
@@ -439,7 +461,7 @@ public class OverlayFunctions {
      */
 
     public void initModel(String textDetector, String imageDetector) throws IOException {
-        boolean isID = imageDetector.equals(ModelTypes.YOLO_V10_F32) || imageDetector.equals(ModelTypes.YOLO_V10_F16);
+        boolean isID = imageDetector.equals(ModelTypes.YOLO_V10_F32) || imageDetector.equals(ModelTypes.YOLO_V10_F16) || imageDetector.equals(ModelTypes.MOBILENET_SSD);
 
         boolean isTD = textDetector.equals(ModelTypes.LSTM)
                 || textDetector.equals(ModelTypes.NaiveBayes)

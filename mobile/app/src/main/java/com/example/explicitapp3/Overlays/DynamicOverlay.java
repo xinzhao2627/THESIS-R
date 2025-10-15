@@ -17,9 +17,9 @@ import android.os.Build;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
-
 import com.example.explicitapp3.R;
 import com.example.explicitapp3.Types.DetectionResult;
 
@@ -53,7 +53,6 @@ public class DynamicOverlay extends View {
         paint.setColor(Color.RED);
         paint.setStrokeWidth(8f);
         paint.setStyle(Paint.Style.STROKE);
-
 
         textPaint = new Paint();
         textPaint.setColor(Color.YELLOW);
@@ -95,7 +94,6 @@ public class DynamicOverlay extends View {
                 r += dr.right * getWidth();
                 b += dr.bottom * getHeight() - 30;
             }
-
             RectF rectF = new RectF(l, t, r, b);
 
             drawBlur(canvas, rectF);
@@ -107,7 +105,6 @@ public class DynamicOverlay extends View {
     }
 
     private void drawBlur(Canvas canvas, RectF rectF) {
-
         // Simple overlay blur
         Paint overlayPaint = new Paint();
         overlayPaint.setColor(Color.BLACK);

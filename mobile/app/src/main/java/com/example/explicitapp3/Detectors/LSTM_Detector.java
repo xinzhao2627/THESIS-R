@@ -45,6 +45,7 @@ public class LSTM_Detector {
             Log.w(TAG, "available processors: " + Runtime.getRuntime().availableProcessors());
             options.setNumThreads(Runtime.getRuntime().availableProcessors());
             options.setUseXNNPACK(true);
+//            options.setUseNNAPI(true);
             interpreter = new Interpreter(modelBuffer_base, options);
 
             int inputCount = interpreter.getInputTensorCount();
@@ -76,13 +77,13 @@ public class LSTM_Detector {
             // if theres no tokens found just continue
             if (inputIds.length < 1) continue;
             // print statements
-            debugInput(t.textContent, inputIds, attentionMask);
+//            debugInput(t.textContent, inputIds, attentionMask);
             float[][] output = runInference(inputIds, attentionMask);
             float max_cfs = output[0][0];
             String l = max_cfs > 0.5 ? LABELS[1] : LABELS[0];
-            Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
-            Log.i(TAG, "label: " + l + "  max cfs: " + max_cfs);
-            Log.i(TAG, "\n");
+//            Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
+//            Log.i(TAG, "label: " + l + "  max cfs: " + max_cfs);
+//            Log.i(TAG, "\n");
             if (l.equals(LABELS[1])) {
                 detectionResultList.add(new DetectionResult(
                         0,
@@ -135,12 +136,12 @@ public class LSTM_Detector {
         }
     }
 
-    private void debugInput(String raw, long[] ids, long[] mask) {
-        int nonPad = 0;
-        for (int i = 0; i < ids.length; i++) if (ids[i] != 0) nonPad++;
-        Log.i(TAG, "RAW: '" + raw + "'");
-        Log.i(TAG, "IDS: " + Arrays.toString(Arrays.copyOf(ids, 16)) + " ...");
-        Log.i(TAG, "MASK: " + Arrays.toString(Arrays.copyOf(mask, 16)) + " ... nonPad=" + nonPad);
-    }
+//    private void debugInput(String raw, long[] ids, long[] mask) {
+//        int nonPad = 0;
+//        for (int i = 0; i < ids.length; i++) if (ids[i] != 0) nonPad++;
+//        Log.i(TAG, "RAW: '" + raw + "'");
+//        Log.i(TAG, "IDS: " + Arrays.toString(Arrays.copyOf(ids, 16)) + " ...");
+//        Log.i(TAG, "MASK: " + Arrays.toString(Arrays.copyOf(mask, 16)) + " ... nonPad=" + nonPad);
+//    }
 
 }

@@ -39,6 +39,11 @@ public class ImageModel {
         } else if (name.equals(ModelTypes.MOBILENET_SSD)) {
             mobilenetSsdDetector = new Mobilenet_ssd_Detector(mcontext, ModelTypes.MOBILENET_SSD + "/" + ModelTypes.MOBILENET_SSD_MODEL,
                     ModelTypes.MOBILENET_SSD + "/" + "labels.txt");
+//            yoloV10Detector = new YoloV10Detector(
+//                    mcontext,
+//                    ModelTypes.YOLO_V10_F32 + "/" + ModelTypes.YOLO_V10_F32_MODEL,
+//                    ModelTypes.YOLO_V10_F32 + "/" + "labels.txt"
+//            );
         }
     }
 
@@ -46,8 +51,8 @@ public class ImageModel {
         if (selectedModel.equals(ModelTypes.YOLO_V10_F32) || selectedModel.equals(ModelTypes.YOLO_V10_F16)) {
             return yoloV10Detector.detect(bitmap);
         } else if (selectedModel.equals(ModelTypes.MOBILENET_SSD)) {
-            Log.i(TAG, "detecting image");
             return mobilenetSsdDetector.detect(bitmap);
+//            return yoloV10Detector.detect(bitmap);
         }
         return null;
     }

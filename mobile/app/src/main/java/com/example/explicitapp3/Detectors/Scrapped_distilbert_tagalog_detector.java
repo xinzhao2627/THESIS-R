@@ -56,7 +56,6 @@ public class Scrapped_distilbert_tagalog_detector {
      * @param context       The context (or activity) of the app
      *                      <p>example usage:
      *                      <pre>{@code
-     *                                                                initTextModel(getApplicationContext(), "assets/path/to/model.tflite")
      *                                                                }</pre></p>
      */
     public Scrapped_distilbert_tagalog_detector (Context context){

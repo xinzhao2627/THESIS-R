@@ -14,13 +14,10 @@ import java.util.regex.Pattern;
 public class LSTM_tokenizer {
     private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
     private static final String UNK_TOKEN = "<OOV>";
-
-
     private Map<String, Integer> vocab;
     private Map<Integer, String> idToToken;
     private final int maxLength = ModelTypes.LSTM_SEQ_LEN;
     private static final String TAG = "LSTM Tokenizer";
-
     public static class TokenizedResult {
         public long[] inputIds;
         public long[] attentionMask;
@@ -29,17 +26,15 @@ public class LSTM_tokenizer {
             this.attentionMask = attentionMask;
         }
     }
-
     public LSTM_tokenizer(InputStream tokenizerJsonStream) {
         this.vocab = new HashMap<>();
         this.idToToken = new HashMap<>();
         try {
             loadTokenizer(tokenizerJsonStream);
         } catch (JSONException e) {
-            Log.e(TAG, "distil_tagalog_tokenizer: ", e);
+            Log.e(TAG, "LSTM_tokenizer: ", e);
         }
     }
-
     private void loadTokenizer(InputStream inputStream) throws JSONException {
         Scanner scanner = new Scanner(inputStream).useDelimiter("\\A");
         String jsonString = scanner.hasNext() ? scanner.next() : "";

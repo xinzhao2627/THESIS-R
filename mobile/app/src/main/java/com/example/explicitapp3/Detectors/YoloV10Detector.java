@@ -151,12 +151,10 @@ public class YoloV10Detector {
         tensorImage.load(resizedBitmap);
         TensorImage processedImage = imageProcessor.process(tensorImage);
 
-
+        ByteBuffer io = processedImage.getBuffer();
         long memEnd = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
         Log.d(TAG, "Memory allocated in resize(): " + (memEnd - memStart) + " bytes");
         return new ResizeResult(processedImage.getBuffer(), resizedBitmap);
-
-
     }
 
     // O(R + I + B)

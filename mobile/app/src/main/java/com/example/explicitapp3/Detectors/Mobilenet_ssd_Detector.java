@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,26 +39,31 @@ import org.tensorflow.lite.gpu.GpuDelegate;
 // The total time complexity of this class is:
 //
 public class Mobilenet_ssd_Detector {
-    Context context;
-    public final String TAG = "YoloV10Detector";
+    public final String TAG = "MobileNetDetector";
     String MODEL_PATH;
     String LABELS_PATH;
     DataType INPUT_IMAGE_TYPE = DataType.FLOAT32;
-    DataType OUTPUT_IMAGE_TYPE = DataType.FLOAT32;
     private static final float CONFIDENCE_THRESHOLD = 0.4f;
 
     List<String> labels;
     Interpreter interpreter;
+
     int tensorWidth = 0;
     int tensorHeight = 0;
-    int numChannel = 0;
-    int numElements = 0;
+    int maxDetections = 0;
+    int numClasses = 0;
+
+    ImageProcessor imageProcessor;
     public Mobilenet_ssd_Detector(Context context, String chosen_image_model, String chosen_image_label) throws IOException {
         MODEL_PATH = chosen_image_model;
         LABELS_PATH = chosen_image_label;
-        Log.w(TAG, "Mobilenet Detector: Yolo initialized");
-        long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 
+        Log.w(TAG, "Mobilenet Detector: initialized");
+        long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+        imageProcessor = new ImageProcessor.Builder()
+                .add(new NormalizeOp(0f, 255f))
+                .add(new CastOp(INPUT_IMAGE_TYPE))
+                .build();
         ByteBuffer model = FileUtil.loadMappedFile(context, MODEL_PATH);
         Interpreter.Options options = new Interpreter.Options();
         CompatibilityList compatibilityList = new CompatibilityList();
@@ -97,49 +103,60 @@ public class Mobilenet_ssd_Detector {
                 tensorHeight = inputShape[3];
             }
         }
-        Log.w(TAG, "tensorWidth: " + tensorWidth);
-        Log.w(TAG, "tensorHeight: " + tensorHeight);
+        Log.w(TAG, "init tensorWidth: " + tensorWidth);
+        Log.w(TAG, "init tensorHeight: " + tensorHeight);
+        Log.w(TAG, "init maxDetections: " + maxDetections);
+        Log.w(TAG, "init numClasses: " + numClasses);
+        Log.w(TAG, "init Scores shape: " + Arrays.toString(interpreter.getOutputTensor(0).shape()));
+        Log.w(TAG, "init Boxes shape: " + Arrays.toString(interpreter.getOutputTensor(1).shape()));
 
         long memEnd = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
         Log.d(TAG, "Memory allocated in YoloV10Detector(): " + (memEnd - memStart) + " bytes");
     }
 
     public ResizeResult resize(Bitmap bitmap) {
+        long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+
+
         Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, tensorWidth, tensorHeight, false);
         TensorImage tensorImage = new TensorImage(INPUT_IMAGE_TYPE);
         tensorImage.load(resizedBitmap);
+        TensorImage processedImage = imageProcessor.process(tensorImage);
         long memEnd = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-        return new ResizeResult(tensorImage.getBuffer(), resizedBitmap);
+        Log.d(TAG, "Memory allocated in resize(): " + (memEnd - memStart) + " bytes");
+        return new ResizeResult(processedImage.getBuffer(), resizedBitmap);
     }
 
 
     public ClassifyResults detect(Bitmap bitmap) {
-        long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
         ResizeResult resizeResult = resize(bitmap);
-        float[][][] boxes = new float[1][10][4];
-        float[][] scores = new float[1][10];
-        float[][] classes = new float[1][10];
-        float[] numDetections = new float[1];
+        float[][][] boxes = new float[1][600][4];
+        float[][][] scores  = new float[1][600][3];
         Map<Integer, Object> output = new HashMap<>();
-        output.put(0, boxes);
-        output.put(1, classes);
-        output.put(2, scores);
-        output.put(3, numDetections);
+        output.put(0, scores);
+        output.put(1, boxes);
+
         Object[] inputArray = { resizeResult.buffer };
         interpreter.runForMultipleInputsOutputs(inputArray, output);
         List<DetectionResult> detectionsResults = new ArrayList<>();
-        int count = Math.min(10, (int) numDetections[0]);
-        for (int i = 0; i < count; i++) {
-            int score = (int) scores[0][i];
-            if (score > CONFIDENCE_THRESHOLD) {
-                int labelId = (int) classes[0][i];
-                String label = labelId < labels.size() ? labels.get(labelId) : "Unknown";
+        for (int i = 0; i < 600; i++) {
+            float maxScore = -1;
+            int classId = -1;
+            for (int c = 0; c < 3; c++) {
+                if (scores[0][i][c] > maxScore) {
+                    maxScore = scores[0][i][c];
+                    classId = c;
+                }
+            }
+            if (maxScore > CONFIDENCE_THRESHOLD) {
                 float ymin = boxes[0][i][0];
                 float xmin = boxes[0][i][1];
                 float ymax = boxes[0][i][2];
                 float xmax = boxes[0][i][3];
-                detectionsResults.add(new DetectionResult(labelId, score, xmin, ymin, xmax, ymax, label, 0));
-            } 
+                String label = classId < labels.size() ? labels.get(classId) : "Unknown";
+//                Log.i(TAG, "Detection: classId=" + classId + ", score=" + maxScore + ", xmin=" + xmin + ", ymin=" + ymin + ", xmax=" + xmax + ", ymax=" + ymax + ", label=" + label);
+                detectionsResults.add(new DetectionResult(classId, maxScore, xmin, ymin, xmax, ymax, label, 0));
+            }
         }
         return new ClassifyResults(resizeResult.resizedBitmap, detectionsResults);
     }
@@ -154,5 +171,6 @@ public class Mobilenet_ssd_Detector {
             labels.clear();
             labels = null;
         }
+        imageProcessor = null;
     }
 }
