@@ -14,6 +14,7 @@ import android.graphics.RenderEffect;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
@@ -23,9 +24,14 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.WindowMetrics;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.example.explicitapp3.R;
 import com.example.explicitapp3.Types.DetectionResult;
+
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,7 +60,8 @@ public class DynamicView {
     int screenWidth;
     int screenHeight;
     WindowManager wm;
-
+    GradientDrawable boxBackground;
+    FrameLayout.LayoutParams labelParams;
     List<TrackedBox> previousDetections = new ArrayList<>();
     Map<TrackedBox, View> overlayMap = new HashMap<>();
 
@@ -70,6 +77,17 @@ public class DynamicView {
         Rect bounds = metrics.getBounds();
         this.screenWidth = bounds.width();
         this.screenHeight = bounds.height();
+
+        // Create a solid box with border (this will not include the label)
+        boxBackground = new GradientDrawable();
+        boxBackground.setColor(Color.argb(200, 0, 0, 0)); // solid/semi-transparent fill
+        boxBackground.setStroke(4, Color.RED); // border color + thickness
+
+        labelParams = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP | Gravity.START
+        );
     }
 
     public void updateDetections(List<DetectionResult> newDetections) {
@@ -101,10 +119,27 @@ public class DynamicView {
         });
     }
 
+    // initialize text design
+    private TextView setText(DetectionResult dr){
+        TextView labelView = new TextView(mcontext);
+        labelView.setText(dr.label + " " + String.format("%.2f", dr.confidence));
+        labelView.setTextColor(Color.WHITE);
+        labelView.setTextSize(12);
+        labelView.setPadding(6, 4, 6, 4);
+        labelView.setBackgroundColor(Color.argb(180, 30, 30, 30)); // black bg
+        return labelView;
+    }
     private View createOverlayView(DetectionResult dr) {
-        View boxView = new View(mcontext);
-        boxView.setBackgroundColor(Color.argb(200, 0, 0, 0)); // solid black block
+        // Outer container (handles position and border)
+        FrameLayout boxContainer = new FrameLayout(mcontext);
+        boxContainer.setBackground(boxBackground);
 
+        TextView labelView = setText(dr);
+
+        // add text in box
+        boxContainer.addView(labelView, labelParams);
+
+        // relocate box
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 (int) ((dr.right - dr.left) * screenWidth),
                 (int) ((dr.bottom - dr.top) * screenHeight),
@@ -117,33 +152,28 @@ public class DynamicView {
         params.y = (int) (dr.top * screenHeight);
         params.gravity = Gravity.TOP | Gravity.START;
 
-        // make only that area untouchable
-        boxView.setOnTouchListener((v, event) -> true);
-
-        wm.addView(boxView, params);
-        return boxView;
+        wm.addView(boxContainer, params);
+        return boxContainer;
     }
+
 
     private void updateOverlayView(TrackedBox tb) {
         View v = overlayMap.get(tb);
         if (v == null) return;
-
         WindowManager.LayoutParams params = (WindowManager.LayoutParams) v.getLayoutParams();
         DetectionResult dr = tb.dr;
-
         params.x = (int) (dr.left * screenWidth);
         params.y = (int) (dr.top * screenHeight);
         params.width = (int) ((dr.right - dr.left) * screenWidth);
         params.height = (int) ((dr.bottom - dr.top) * screenHeight);
-
         wm.updateViewLayout(v, params);
     }
 
     private List<DetectionResult> updateTracking(List<DetectionResult> dt, long now) {
         if (!dt.isEmpty()) {
             boolean[] matched = new boolean[dt.size()];
-
             for (TrackedBox tb : previousDetections) {
+
                 int bestIndex = -1;
                 float bestIou = 0f;
 
@@ -200,6 +230,7 @@ public class DynamicView {
         return res;
     }
 
+    // n^m
     private float iou(DetectionResult a, DetectionResult b) {
         float interLeft = Math.max(a.left, b.left);
         float interTop = Math.max(a.top, b.top);

@@ -42,7 +42,7 @@ public class YoloV10Detector {
     String LABELS_PATH;
     DataType INPUT_IMAGE_TYPE = DataType.FLOAT32;
     DataType OUTPUT_IMAGE_TYPE = DataType.FLOAT32;
-    private static final float CONFIDENCE_THRESHOLD = 0.4f;
+    private static final float CONFIDENCE_THRESHOLD = 0.2f;
 
     List<String> labels;
     Interpreter interpreter;
@@ -153,7 +153,7 @@ public class YoloV10Detector {
 
         ByteBuffer io = processedImage.getBuffer();
         long memEnd = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-        Log.d(TAG, "Memory allocated in resize(): " + (memEnd - memStart) + " bytes");
+//        Log.d(TAG, "Memory allocated in resize(): " + (memEnd - memStart) + " bytes");
         return new ResizeResult(processedImage.getBuffer(), resizedBitmap);
     }
 
@@ -173,7 +173,6 @@ public class YoloV10Detector {
 //        Log.i(TAG, "getBoundsList: predicting...");
         interpreter.run(resizeResult.buffer, output.getBuffer());
         List<DetectionResult> detectionResultList = getBoundsList(bitmap, output.getFloatArray());
-
 
         long memEnd = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
         Log.d(TAG, "Memory allocated in detect(): " + (memEnd - memStart) + " bytes");
@@ -195,13 +194,16 @@ public class YoloV10Detector {
             int offset = i * numChannel;
             float confidence = predictions[offset + 4];
             if (confidence > CONFIDENCE_THRESHOLD) {
+                int labelId = (int) predictions[offset + 5];
+                String label = labels.get(labelId);
+                if (label.equals("safe")) continue;
+
                 float x = predictions[offset];
                 float y = predictions[offset + 1];
                 float w = predictions[offset + 2];
                 float h = predictions[offset + 3];
 
-                int labelId = (int) predictions[offset + 5];
-                String label = labels.get(labelId);
+
                 Log.w(TAG, "label: " + label + " confidence: " + confidence);
                 detectionResults.add(new DetectionResult(
                         labelId, confidence,

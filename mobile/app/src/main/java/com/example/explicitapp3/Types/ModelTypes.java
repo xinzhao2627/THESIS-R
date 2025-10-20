@@ -5,7 +5,7 @@ public class ModelTypes {
     public static final String YOLO_V10_F16_MODEL = "yolov10n_float16.tflite";
 
     public static final String YOLO_V10_F32= "yolov10_32";
-    public static final String YOLO_V10_F32_MODEL = "yolov10n_float32.tflite";
+    public static final String YOLO_V10_F32_MODEL = "yolov10n_float32V3.tflite";
 
     public static final String MOBILENET_SSD = "mobilenet_ssd";
     public static final String MOBILENET_SSD_MODEL = "mobilenet_ssd.tflite";
