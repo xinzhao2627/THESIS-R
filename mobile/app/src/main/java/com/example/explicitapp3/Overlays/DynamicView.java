@@ -139,6 +139,7 @@ public class DynamicView {
         // add text in box
         boxContainer.addView(labelView, labelParams);
 
+        // coordinates
         float width = (dr.right - dr.left) * screenWidth;
         float height = (dr.bottom - dr.top) * screenHeight;
         float x = dr.left * screenWidth;
@@ -172,6 +173,7 @@ public class DynamicView {
         params.y = (int) y;
         params.gravity = Gravity.TOP | Gravity.START;
 
+        // show
         wm.addView(boxContainer, params);
         return boxContainer;
     }
