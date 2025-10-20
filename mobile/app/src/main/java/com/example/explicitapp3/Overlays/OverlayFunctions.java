@@ -201,8 +201,6 @@ public class OverlayFunctions {
 //            });
 //        }
 
-
-
         if (dynamicView != null) {
             new Handler(mcontext.getMainLooper()).post(() -> {
                 while (dt.size() > 4) {

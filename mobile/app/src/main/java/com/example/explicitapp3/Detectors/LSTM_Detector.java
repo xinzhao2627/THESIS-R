@@ -116,10 +116,14 @@ public class LSTM_Detector {
         long startTime = System.currentTimeMillis();
         int seqLen = inputIds.length;
 
-        float[][] newInput = new float[1][seqLen];
+        float[][] newInput = new float[1][ModelTypes.LSTM_SEQ_LEN];
 
-        for (int i = 0; i < seqLen; i++) {
-            newInput[0][i] = (float) inputIds[i];
+        for (int i = 0; i < ModelTypes.LSTM_SEQ_LEN; i++) {
+            if (i < seqLen) {
+                newInput[0][i] = (float) inputIds[i];
+            } else {
+                newInput[0][i] = 0.0f;
+            }
         }
 
         interpreter.run(newInput, outputs);
