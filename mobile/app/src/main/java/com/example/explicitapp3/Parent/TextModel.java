@@ -25,6 +25,7 @@ public class TextModel {
     NaiveBayes_Detector naiveBayesDetector;
     Context mcontext;
     String selectedModel;
+    int statusBarHeight = 0;
     public static final String TAG = "TEXTMODEL";
 
     public TextModel(Context mcontext, String name) {
@@ -47,22 +48,28 @@ public class TextModel {
     }
 
     public List<DetectionResult> detect(Bitmap bitmap) {
-        switch (selectedModel) {
-            case ModelTypes.ROBERTA_TAGALOG:
-                return robertaTagalogDetector.detect(bitmap);
-            case ModelTypes.DISTILBERT_TAGALOG:
-                return distilBERTDetector.detect(bitmap);
-            case ModelTypes.LSTM:
-                return lstmDetector.detect(bitmap);
-            case ModelTypes.LogisticRegression:
-                return logisticRegressionDetector.detect(bitmap);
-            case ModelTypes.SVM:
-                return svmDetector.detect(bitmap);
-            case ModelTypes.NaiveBayes:
-                return naiveBayesDetector.detect(bitmap);
-            default:
-                return new ArrayList<>();
+        try {
+            switch (selectedModel) {
+                case ModelTypes.ROBERTA_TAGALOG:
+                    return robertaTagalogDetector.detect(bitmap);
+                case ModelTypes.DISTILBERT_TAGALOG:
+                    return distilBERTDetector.detect(bitmap);
+                case ModelTypes.LSTM:
+                    return lstmDetector.detect(bitmap);
+                case ModelTypes.LogisticRegression:
+                    return logisticRegressionDetector.detect(bitmap);
+                case ModelTypes.SVM:
+                    return svmDetector.detect(bitmap);
+                case ModelTypes.NaiveBayes:
+                    return naiveBayesDetector.detect(bitmap);
+                default:
+                    return new ArrayList<>();
+            }
+        } catch (Exception e) {
+            Log.i(TAG, "error!: " + e.getMessage());
+            return new ArrayList<>();
         }
+
     }
 
     public void cleanup() {

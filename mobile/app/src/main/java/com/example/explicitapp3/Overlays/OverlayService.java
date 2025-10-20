@@ -74,7 +74,7 @@ public class OverlayService extends Service {
     public void onCreate() {
         super.onCreate();
     }
-
+//   LISTENERS WHEN FOREGROUND intent IS INITIALIZED
     @Override
     public int onStartCommand(Intent intent, int flags, int startId)  {
         if (intent != null && "STOP_SERVICE".equals(intent.getAction())) {

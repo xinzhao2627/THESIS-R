@@ -29,6 +29,7 @@ public class Recognizer {
             return textList;
         }
         try {
+            int upwardOffset = 60;
             TextRecognizer textRecognizer = new TextRecognizer.Builder(mcontext).build();
             Frame frameimage = new Frame.Builder().setBitmap(bitmap).build();
             SparseArray<TextBlock> textBlockSparseArray = textRecognizer.detect(frameimage);
@@ -39,18 +40,22 @@ public class Recognizer {
                 for (Text t : textBlock.getComponents()) {
 //                    Log.w(TAG, i + " textRecognition: " + t.getValue());
                     Rect rect = t.getBoundingBox();
-                    int offset = (int)(rect.height() * 0.9);
-                    offset = 0;
+//                    int offset = (int) (rect.height() * 0.1);
+                    int top = rect.top - upwardOffset;
+                    int bottom = rect.bottom - upwardOffset;
 
-                    int top = rect.top - offset;
+                    // Prevent clipping above screen
                     if (top < 0) {
                         top = 0;
+                    }
+                    if (bottom < 0){
+                        bottom = 0;
                     }
                     String text = t.getValue().trim().toLowerCase();
                     if (text.isEmpty()) continue;
                     if (!text.matches(".*[a-zA-Z].*")) continue;
 //                    Log.w(TAG, "left: " + rect.left + " right: " + rect.right + " top: " + rect.top + " bottom: " + rect.bottom);
-                    textList.add(new TextResults(rect.left, top, rect.right, rect.bottom - offset, 1, t.getValue()));
+                    textList.add(new TextResults(rect.left, top, rect.right, bottom, 1, t.getValue()));
                 }
             }
         }catch (Exception e) {

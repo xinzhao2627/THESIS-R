@@ -164,7 +164,9 @@ public class OverlayFunctions {
     }
 
     public void setupDynamicOverlay() {
-        dynamicView = new DynamicView(mcontext, wm);
+        if (dynamicView == null){
+            dynamicView = new DynamicView(mcontext, wm);
+        }
 
 //        dynamicOverlay = new DynamicOverlay(mcontext);
 //        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
@@ -203,11 +205,14 @@ public class OverlayFunctions {
 
         if (dynamicView != null) {
             new Handler(mcontext.getMainLooper()).post(() -> {
-                while (dt.size() > 4) {
-                    dt.remove(dt.size() - 1);
+
+                if (dynamicView != null){
+                    while (dt.size() > 4) {
+                        dt.remove(dt.size() - 1);
+                    }
+                    dynamicView.updateDetections(dt);
                 }
 //                dynamicView.clearDetectionOverlays();
-                dynamicView.updateDetections(dt);
 //                dynamicView.setAllView();
             });
         }

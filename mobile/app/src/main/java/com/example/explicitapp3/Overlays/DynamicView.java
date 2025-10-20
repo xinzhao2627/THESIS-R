@@ -146,14 +146,6 @@ public class DynamicView {
         float y = dr.top * screenHeight;
 
         // enlarge if modelType == 1
-//        if (dr.modelType == 1) {
-//            float extraW = (width * (MODEL1_SCALE - 1)) / 2;
-//            float extraH = (height * (MODEL1_SCALE - 1)) / 2;
-//            x -= extraW;
-//            y -= extraH;
-//            width *= MODEL1_SCALE;
-//            height *= MODEL1_SCALE;
-//        }
         if (dr.modelType == 1) {
             float extraH = (height * (MODEL1_SCALE - 1)) / 2;
             y -= extraH;
@@ -172,7 +164,6 @@ public class DynamicView {
         params.x = (int) x;
         params.y = (int) y;
         params.gravity = Gravity.TOP | Gravity.START;
-
         // show
         wm.addView(boxContainer, params);
         return boxContainer;
