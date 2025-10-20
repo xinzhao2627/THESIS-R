@@ -55,7 +55,7 @@ public class DynamicView {
             this.misses = 0;
         }
     }
-
+    private static final float MODEL1_SCALE = 1.8f;
     Context mcontext;
     int screenWidth;
     int screenHeight;
@@ -139,17 +139,37 @@ public class DynamicView {
         // add text in box
         boxContainer.addView(labelView, labelParams);
 
+        float width = (dr.right - dr.left) * screenWidth;
+        float height = (dr.bottom - dr.top) * screenHeight;
+        float x = dr.left * screenWidth;
+        float y = dr.top * screenHeight;
+
+        // enlarge if modelType == 1
+//        if (dr.modelType == 1) {
+//            float extraW = (width * (MODEL1_SCALE - 1)) / 2;
+//            float extraH = (height * (MODEL1_SCALE - 1)) / 2;
+//            x -= extraW;
+//            y -= extraH;
+//            width *= MODEL1_SCALE;
+//            height *= MODEL1_SCALE;
+//        }
+        if (dr.modelType == 1) {
+            float extraH = (height * (MODEL1_SCALE - 1)) / 2;
+            y -= extraH;
+            height *= MODEL1_SCALE;
+        }
+
         // relocate box
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                (int) ((dr.right - dr.left) * screenWidth),
-                (int) ((dr.bottom - dr.top) * screenHeight),
+                (int) width,
+                (int) height,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.OPAQUE
         );
 
-        params.x = (int) (dr.left * screenWidth);
-        params.y = (int) (dr.top * screenHeight);
+        params.x = (int) x;
+        params.y = (int) y;
         params.gravity = Gravity.TOP | Gravity.START;
 
         wm.addView(boxContainer, params);
@@ -162,10 +182,23 @@ public class DynamicView {
         if (v == null) return;
         WindowManager.LayoutParams params = (WindowManager.LayoutParams) v.getLayoutParams();
         DetectionResult dr = tb.dr;
-        params.x = (int) (dr.left * screenWidth);
-        params.y = (int) (dr.top * screenHeight);
-        params.width = (int) ((dr.right - dr.left) * screenWidth);
-        params.height = (int) ((dr.bottom - dr.top) * screenHeight);
+
+        float width = (dr.right - dr.left) * screenWidth;
+        float height = (dr.bottom - dr.top) * screenHeight;
+        float x = dr.left * screenWidth;
+        float y = dr.top * screenHeight;
+
+        // make box taller if modelType == 1
+        if (dr.modelType == 1) {
+            float extraH = (height * (MODEL1_SCALE - 1)) / 2;
+            y -= extraH;
+            height *= MODEL1_SCALE;
+        }
+
+        params.x = (int) x;
+        params.y = (int) y;
+        params.width = (int) width;
+        params.height = (int) height;
         wm.updateViewLayout(v, params);
     }
 
