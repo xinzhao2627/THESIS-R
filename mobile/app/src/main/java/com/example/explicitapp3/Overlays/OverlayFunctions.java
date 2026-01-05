@@ -16,6 +16,7 @@ import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -53,16 +54,14 @@ public class OverlayFunctions {
     ImageModel imageModel;
     // these are for screenshot
     ImageReader imageReader;
-    Handler handler;
+    Handler handler; //backgrund
+    Handler mainHandler; // ui
     HandlerThread handlerThread;
     DynamicOverlay dynamicOverlay;
     TextModel textModel;
     private static final String TAG = "OverlayFunctions";
-
     List<TrackedBox> previousDetections = new ArrayList<>();
-    long DETECTION_PERSIST_MS = 1000;
-    int MAX_MISSES = 20;
-    float IOU_THRESHOLD = 0.45f;
+
 
     DynamicView dynamicView;
     private static class TrackedBox {
@@ -139,23 +138,22 @@ public class OverlayFunctions {
         handlerThread = new HandlerThread("ImageProcessor");
         handlerThread.start();
         handler = new Handler(handlerThread.getLooper());
-
+        mainHandler = new Handler(Looper.getMainLooper());
         int[] boundsRes = getBounds();
         imageReader = ImageReader.newInstance(
                 boundsRes[0],
                 boundsRes[1],
                 PixelFormat.RGBA_8888,
-                56
+                3
         );
         imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
+
             @Override
             public void onImageAvailable(ImageReader reader) {
                 Image image = reader.acquireLatestImage();
                 if (image != null) {
                     Bitmap bitmap = imageToBitmap(image);
-                    processImageAsync(bitmap);
-                    image.close();
-                    bitmap.recycle();
+                    processImage(image,bitmap);
                 }
             }
         }, handler);
@@ -167,154 +165,27 @@ public class OverlayFunctions {
         if (dynamicView == null){
             dynamicView = new DynamicView(mcontext, wm);
         }
-
-//        dynamicOverlay = new DynamicOverlay(mcontext);
-//        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-//                WindowManager.LayoutParams.MATCH_PARENT,
-//                WindowManager.LayoutParams.MATCH_PARENT,
-//                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-//                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-//                        | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-//                ,
-//                PixelFormat.TRANSLUCENT
-//        );
-//        wm.addView(dynamicOverlay, params);
     }
 
-    private void processImageAsync(Bitmap bitmap) {
-        long startTime = System.currentTimeMillis();
+    private void processImage(Image image ,Bitmap bitmap) {
         List<DetectionResult> dt = new ArrayList<>();
         if (imageModel != null) {
             ClassifyResults res = imageModel.detect(bitmap);
             dt.addAll(res.detectionResults);
         }
-        if (textModel != null) {
-            List<DetectionResult> dt_text = textModel.detect(bitmap);
-            dt.addAll(dt_text);
-        }
-//        List<DetectionResult> toBlur = updateTracking(dt, startTime);
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
-
-        // display faster??
-//        if (dynamicOverlay != null) {
-//            new Handler(mcontext.getMainLooper()).post(() -> {
-//                dynamicOverlay.setResults(toBlur);
-//            });
-//        }
-
-        if (dynamicView != null) {
-            new Handler(mcontext.getMainLooper()).post(() -> {
-
-                if (dynamicView != null){
-                    while (dt.size() > 4) {
-                        dt.remove(dt.size() - 1);
-                    }
-                    dynamicView.updateDetections(dt);
-                }
-//                dynamicView.clearDetectionOverlays();
-//                dynamicView.setAllView();
-            });
-        }
+        image.close();
+        bitmap.recycle();
+        mainHandler.post(()-> handleUI(dt));
     }
-
-    private List<DetectionResult> updateTracking(List<DetectionResult> dt, long now) {
-
-        if (!dt.isEmpty()) {
-            // this var tracks all the new overlaps, we dont include overlaps
-            boolean[] matched = new boolean[dt.size()];
-
-            for (TrackedBox tb : previousDetections) {
-                int bestIndex = -1;
-                float bestIou = 0f;
-
-                // loop all the new objects and find the highest iou
-                for (int i = 0; i < dt.size(); i++) {
-                    if (matched[i]) continue;
-                    DetectionResult c = dt.get(i);
-                    // skip if we are comparing image to text
-                    if (tb.dr.modelType != c.modelType) continue;
-
-                    // a high iou means one of the old object
-                    // is similar to the new one
-                    float iou = iou(tb.dr, c);
-                    if (iou > bestIou) {
-                        bestIou = iou;
-                        bestIndex = i;
-                    }
+    private void handleUI(List<DetectionResult> dt) {
+            if (dynamicView != null){
+//                    only output 4 boxes for now
+                while (dt.size() > 4) {
+                    dt.remove(dt.size() - 1);
                 }
-                // check the highest iou if it overlaps with one
-                // of the existing objects
-                if (bestIndex >= 0 && bestIou >= IOU_THRESHOLD) {
-                    // if it is then replace the existing
-                    tb.dr = dt.get(bestIndex);
-                    tb.lastSeen = now;
-                    tb.misses = 0;
-                    // then mark that object, meaning it has already been integrated
-                    matched[bestIndex] = true;
-                } else {
-                    tb.misses++;
-                }
+                dynamicView.updateDetections(dt);
             }
 
-
-            for (int i = 0; i < dt.size(); i++) {
-                // add only new detections if it does not overlap on previous ones
-                if (!matched[i]) {
-                    previousDetections.add(new TrackedBox(dt.get(i), now));
-                }
-            }
-
-        } else {
-            // else just update the misses
-            for (TrackedBox b : previousDetections) {
-                b.misses++;
-            }
-        }
-
-        // final check for outdated objects
-        Iterator<TrackedBox> it = previousDetections.iterator();
-        while (it.hasNext()) {
-            TrackedBox b = it.next();
-            long age = now - b.lastSeen;
-            // if object last long enough remove it
-            if (b.misses > MAX_MISSES || age > DETECTION_PERSIST_MS) {
-                it.remove();
-            }
-        }
-
-
-        // the list of all detected objects that remained from previous
-        List<DetectionResult> res = new ArrayList<>();
-        for (TrackedBox tb : previousDetections) {
-            res.add(tb.dr);
-        }
-        return res;
-    }
-
-    private float iou(DetectionResult a, DetectionResult b) {
-        float ax1 = a.left;
-        float ay1 = a.top;
-        float ax2 = a.right;
-        float ay2 = a.bottom;
-
-        float bx1 = b.left;
-        float by1 = b.top;
-        float bx2 = b.right;
-        float by2 = b.bottom;
-
-        float interLeft = Math.max(ax1, bx1);
-        float interTop = Math.max(ay1, by1);
-        float interRight = Math.min(ax2, bx2);
-        float interBottom = Math.min(ay2, by2);
-        float interW = Math.max(0f, interRight - interLeft);
-        float interH = Math.max(0f, interBottom - interTop);
-        float interArea = interW * interH;
-        if (interArea <= 0f) return 0f;
-
-        float areaA = (ax2 - ax1) * (ay2 - ay1);
-        float areaB = (bx2 - bx1) * (by2 - by1);
-        return interArea / (areaA + areaB - interArea + 1e-6f);
     }
 
     /**
@@ -335,41 +206,6 @@ public class OverlayFunctions {
         Bitmap bitmap = Bitmap.createBitmap(bitmapWidth, image.getHeight(), Bitmap.Config.ARGB_8888);
         bitmap.copyPixelsFromBuffer(buffer);
         return bitmap;
-    }
-
-    /**
-     * Saves a bitmap image to the device gallery using the MediaStore API.
-     *
-     * @param bitmap The bitmap to save to gallery
-     * @throws RuntimeException If save operation fails
-     * @see MediaStore.Images.Media#EXTERNAL_CONTENT_URI
-     * @see ContentResolver#insert(Uri, ContentValues)
-     */
-    public void saveToGalleryBitmap(Bitmap bitmap) {
-        // can configure the bitmap here
-        if (bitmap != null) {
-            try {
-                // you need content resolver in android 15
-                ContentResolver resolver = mcontext.getContentResolver();
-                ContentValues contentValues = new ContentValues();
-                contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, "as_screenshot_" + System.currentTimeMillis());
-                contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/png");
-                Uri uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
-                if (uri != null) {
-                    try (OutputStream outputStream = resolver.openOutputStream(uri)) {
-                        if (outputStream == null) {
-                            throw new IOException("Failed to open output stream");
-                        }
-                        if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)) {
-                            throw new IOException("Failed to save bitmap");
-                        }
-                    }
-                }
-            } catch (IOException e) {
-                Log.e(TAG, "onSurfaceTextureUpdated: IOError " + e.getMessage());
-                throw new RuntimeException(e);
-            }
-        }
     }
 
     /**

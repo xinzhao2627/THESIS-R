@@ -16,8 +16,13 @@ import android.view.WindowManager;
 import androidx.annotation.Nullable;
 
 import com.example.explicitapp3.MainActivity;
+import com.example.explicitapp3.PerformanceMonitor;
 
+import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 /**
  * OverlayService is a foreground service that came from the main activity.
@@ -69,16 +74,19 @@ public class OverlayService extends Service {
     Notification notification;
     MediaProjectionManager mediaProjectionManager;
     WindowManager wm;
+    private PerformanceMonitor performanceMonitor;
 
     @Override
     public void onCreate() {
         super.onCreate();
     }
+
 //   LISTENERS WHEN FOREGROUND intent IS INITIALIZED
     @Override
     public int onStartCommand(Intent intent, int flags, int startId)  {
         if (intent != null && "STOP_SERVICE".equals(intent.getAction())) {
             Log.w(TAG, "Stop command received, shutting down service");
+            stopPerformanceMonitoring();
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -116,13 +124,34 @@ public class OverlayService extends Service {
                 overlayFunctions.setup(wm, getResources().getDisplayMetrics().densityDpi, mediaProjection, mediaProjectionManager);
             }
         }
+        startPerformanceMonitoring();
 
         return START_STICKY;
     }
+    private void startPerformanceMonitoring() {
+        File outputDir = new File(getExternalFilesDir(null), "performance_logs");
+        if (!outputDir.exists()) {
+            outputDir.mkdirs();
+        }
 
+        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+        File csvFile = new File(outputDir, "performance_" + timestamp + ".csv");
+
+        performanceMonitor = new PerformanceMonitor(this);
+        performanceMonitor.startMonitoring(csvFile);
+
+        Log.i(TAG, "Performance logs: " + csvFile.getAbsolutePath());
+    }
+    private void stopPerformanceMonitoring() {
+        if (performanceMonitor != null) {
+            performanceMonitor.stopMonitoring();
+            performanceMonitor = null;
+        }
+    }
     @Override
     public void onDestroy() {
         super.onDestroy();
+        stopPerformanceMonitoring();
 
         if (overlayFunctions != null) {
             overlayFunctions.destroy();

@@ -18,8 +18,10 @@ import java.util.List;
 public class Recognizer {
     Context mcontext;
     private static final String TAG = "Recognizer";
+    TextRecognizer textRecognizer;
     public Recognizer(Context context){
         mcontext = context;
+        textRecognizer = new TextRecognizer.Builder(mcontext).build();
     }
     public List<TextResults> textRecognition(Bitmap bitmap) {
         List<TextResults> textList = new ArrayList<>();
@@ -30,7 +32,6 @@ public class Recognizer {
         }
         try {
             int upwardOffset = 60;
-            TextRecognizer textRecognizer = new TextRecognizer.Builder(mcontext).build();
             Frame frameimage = new Frame.Builder().setBitmap(bitmap).build();
             SparseArray<TextBlock> textBlockSparseArray = textRecognizer.detect(frameimage);
             Log.w(TAG, "textRecognition: hihi");

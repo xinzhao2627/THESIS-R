@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.util.Log;
@@ -50,28 +51,15 @@ public class YoloV10Detector {
     int tensorHeight = 0;
     int numChannel = 0;
     int numElements = 0;
-
+    GpuDelegate gpuDelegate;
     ImageProcessor imageProcessor;
 
-    /*
-     * The final time complexity of YoloV10Detector is:
-     * = O(L + R + B + D)
-     * = O(R + B) since L < N | L < B && D < N | D < B
-     * = O((w * h) + N)
-     *
-     * Where:
-     * N = numElements
-     * h = tensorHeight
-     * w = tensorWidth
-     * B = detect() func
-     * L = YoloV10Detector() func
-     * D = drawBoxes() func
-     * R = resize() func
-     * */
+//    new
+    TensorImage tensorImage;
+    TensorBuffer output;
+    Bitmap resizedBitmap;
 
-    // this is O(L) where L is the set of labels
-    // but L is guaranteed to be less than the time complexity of resize()
-    // so the time complexity here is omitted in O(L + R + B) as L < R & L < B
+    //    initialize, this runs one time
     public YoloV10Detector(Context context, String chosen_image_model, String chosen_image_label) throws IOException {
         MODEL_PATH = chosen_image_model;
         LABELS_PATH = chosen_image_label;
@@ -90,10 +78,9 @@ public class YoloV10Detector {
         if (compatibilityList.isDelegateSupportedOnThisDevice()) {
             Log.w(TAG, "GPU SUPPORTED" );
             GpuDelegate.Options delegateOptions = compatibilityList.getBestOptionsForThisDevice();
-            GpuDelegate gpuDelegate = new GpuDelegate(delegateOptions);
+            gpuDelegate = new GpuDelegate(delegateOptions);
             options.addDelegate(gpuDelegate);
         } else {
-            //        options.setNumThreads(4);
             Log.w(TAG, "GPU NOT SUPPORTED" );
             Log.w(TAG, "available processors: " + Runtime.getRuntime().availableProcessors());
             options.setNumThreads(Runtime.getRuntime().availableProcessors());
@@ -138,58 +125,51 @@ public class YoloV10Detector {
 
         long memEnd = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
         Log.d(TAG, "Memory allocated in YoloV10Detector(): " + (memEnd - memStart) + " bytes");
-    }
 
-    // resize the image to fit in the interpreter model
-    // TIME COMPLEXITY: O(WxH) or O(640x640) = constant = O(R)
-    public ResizeResult resize(Bitmap bitmap) {
-        long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-
-
-        Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, tensorWidth, tensorHeight, false);
-        TensorImage tensorImage = new TensorImage(INPUT_IMAGE_TYPE);
-        tensorImage.load(resizedBitmap);
-        TensorImage processedImage = imageProcessor.process(tensorImage);
-
-        ByteBuffer io = processedImage.getBuffer();
-        long memEnd = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-//        Log.d(TAG, "Memory allocated in resize(): " + (memEnd - memStart) + " bytes");
-        return new ResizeResult(processedImage.getBuffer(), resizedBitmap);
-    }
-
-    // O(R + I + B)
-    // R = Resize function
-    // I = interpreter
-    // B = getBoundsList
-    public ClassifyResults detect(Bitmap bitmap) {
-        long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-
-        ResizeResult resizeResult = resize(bitmap);
-        TensorBuffer output = TensorBuffer.createFixedSize(
+//        new
+        tensorImage = new TensorImage(INPUT_IMAGE_TYPE);
+        output = TensorBuffer.createFixedSize(
                 new int[]{1, numElements, numChannel},
-                // this is float32
                 OUTPUT_IMAGE_TYPE
         );
-//        Log.i(TAG, "getBoundsList: predicting...");
-        interpreter.run(resizeResult.buffer, output.getBuffer());
-        List<DetectionResult> detectionResultList = getBoundsList(bitmap, output.getFloatArray());
-
-        long memEnd = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-        Log.d(TAG, "Memory allocated in detect(): " + (memEnd - memStart) + " bytes");
-        return new ClassifyResults(resizeResult.resizedBitmap, detectionResultList);
-
-
+        resizedBitmap = Bitmap.createBitmap(
+                tensorWidth,
+                tensorHeight,
+                Bitmap.Config.ARGB_8888
+        );
     }
 
+//    this runs every detect()
+//    public ResizeResult resize(Bitmap bitmap) {
+////        Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, tensorWidth, tensorHeight, false);
+//        Canvas canvas = new Canvas(resizedBitmap);
+//        canvas.drawBitmap(bitmap, null,
+//                new Rect(0, 0, tensorWidth, tensorHeight),
+//                null);
+//        tensorImage.load(resizedBitmap);
+//        TensorImage processedImage = imageProcessor.process(tensorImage);
+//        return new ResizeResult(processedImage.getBuffer(), resizedBitmap);
+//    }
+private void resizeInto(Bitmap src, Bitmap dst) {
+    Canvas canvas = new Canvas(dst);
+    canvas.drawBitmap(src, null,
+            new Rect(0, 0, tensorWidth, tensorHeight),
+            null);
+}
+// run the interpreter
+    public ClassifyResults detect(Bitmap bitmap) {
+//        ResizeResult resizeResult = resize(bitmap);
+        resizeInto(bitmap, resizedBitmap);
+        tensorImage.load(resizedBitmap);
+        TensorImage processedImage = imageProcessor.process(tensorImage);
+        interpreter.run(processedImage.getBuffer(), output.getBuffer());
+        List<DetectionResult> detectionResultList = getBoundsList(bitmap, output.getFloatArray());
+        return new ClassifyResults(null, detectionResultList);
+    }
 
-    // O(N) = B
-    // N = loop of numElements, usually between 3 to 3 digits
+//    get the coordinates and label
     public List<DetectionResult> getBoundsList(Bitmap bitmap, float[] predictions) {
-        Log.w(TAG, "getBoundsList: getting bounds" );
-        long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-
         List<DetectionResult> detectionResults = new ArrayList<>();
-
         for (int i = 0; i < numElements; i++) {
             int offset = i * numChannel;
             float confidence = predictions[offset + 4];
@@ -203,8 +183,6 @@ public class YoloV10Detector {
                 float w = predictions[offset + 2];
                 float h = predictions[offset + 3];
 
-
-                Log.w(TAG, "label: " + label + " confidence: " + confidence);
                 detectionResults.add(new DetectionResult(
                         labelId, confidence,
                         x, y, w, h,
@@ -213,47 +191,10 @@ public class YoloV10Detector {
                 ));
             }
         }
-        long memEnd = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-        Log.d(TAG, "Memory allocated in getBoundsList(): " + (memEnd - memStart) + " bytes");
         return detectionResults;
     }
 
-    // The time complexity of drawBoxes() O(D) depends on the detectionResults, which came
-    // from the getsBoundsList, therefore O(D) is omitted in N + D since D < B
-    public Bitmap drawBoxes(Bitmap bitmap, List<DetectionResult> detectionResults) {
-        long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-
-        Bitmap mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
-        Canvas canvas = new Canvas(mutableBitmap);
-        Paint paint = new Paint();
-        paint.setColor(Color.RED);
-        paint.setStrokeWidth(8f);
-        paint.setStyle(Paint.Style.STROKE);
-
-        Paint textPaint = new Paint();
-        textPaint.setColor(Color.YELLOW);
-        textPaint.setTextSize(40f);
-        textPaint.setTypeface(Typeface.DEFAULT_BOLD);
-
-        Log.w(TAG, "bitmap width: " + bitmap.getWidth() + " bitmap height: " + bitmap.getHeight());
-        int padding = 5;
-        for (DetectionResult dr : detectionResults) {
-            float l = dr.left * bitmap.getWidth() - padding;
-            float t = dr.top * bitmap.getHeight() - padding;
-            float r = dr.right * bitmap.getWidth() + padding;
-            float b = dr.bottom * bitmap.getHeight() + padding;
-
-            RectF rectF = new RectF(l, t, r, b);
-
-            canvas.drawRect(rectF, paint);
-            String tt = dr.label + " " + String.format("%.2f", dr.confidence);
-            canvas.drawText(tt, rectF.left, rectF.top, textPaint);
-        }
-        long memEnd = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-        Log.d(TAG, "Memory allocated in getBoundsList(): " + (memEnd - memStart) + " bytes");
-        return mutableBitmap;
-    }
-
+//    close the model, this runs one time
     public void cleanup() {
         if (interpreter != null) {
             interpreter.close();
@@ -264,7 +205,10 @@ public class YoloV10Detector {
             labels.clear();
             labels = null;
         }
-
+        if (gpuDelegate != null){
+            gpuDelegate.close();
+            gpuDelegate = null;
+        }
         imageProcessor = null;
     }
 }

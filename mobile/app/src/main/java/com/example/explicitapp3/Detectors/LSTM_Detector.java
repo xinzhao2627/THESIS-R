@@ -60,26 +60,28 @@ public class LSTM_Detector {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-
-
+    }
+    public void initBuffers() {
+        int[] outputShape = interpreter.getOutputTensor(0).shape();
+        outputs = new float[outputShape[0]][outputShape[1]];
     }
 
     public List<DetectionResult> detect(Bitmap bitmap) {
         List<DetectionResult> detectionResultList = new ArrayList<>();
         List<TextResults> textResults = recognizer.textRecognition(bitmap);
-        long startTime = System.currentTimeMillis();
         for (TextResults t : textResults) {
             String text = t.textContent.toLowerCase().trim();
+            Log.i(TAG, "text t: " + text);
             LSTM_tokenizer.TokenizedResult encoding = tokenizer.encode(text);
             long[] inputIds = encoding.inputIds;
             long[] attentionMask = encoding.attentionMask;
-
             // if theres no tokens found just continue
             if (inputIds.length < 1) continue;
-            // print statements
-//            debugInput(t.textContent, inputIds, attentionMask);
+
             float[][] output = runInference(inputIds, attentionMask);
             float max_cfs = output[0][0];
+            Log.i(TAG, "cfs: " + max_cfs);
+
             String l = max_cfs > 0.5 ? LABELS[1] : LABELS[0];
 //            Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
 //            Log.i(TAG, "label: " + l + "  max cfs: " + max_cfs);
@@ -99,19 +101,8 @@ public class LSTM_Detector {
 
 
         }
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
         return detectionResultList;
     }
-
-    public void initBuffers() {
-        ids = new int[1][ModelTypes.LSTM_SEQ_LEN];
-        mask = new int[1][ModelTypes.LSTM_SEQ_LEN];
-        int[] outputShape = interpreter.getOutputTensor(0).shape();
-        Log.i(TAG, "initBuffers: output shape[0]" + outputShape[0] + " outputshape[1]: " + outputShape[1]);
-        outputs = new float[outputShape[0]][outputShape[1]];
-    }
-
     public float[][] runInference(long[] inputIds, long[] attentionMask) {
         long startTime = System.currentTimeMillis();
         int seqLen = inputIds.length;

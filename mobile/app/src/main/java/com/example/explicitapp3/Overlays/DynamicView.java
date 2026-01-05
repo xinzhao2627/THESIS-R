@@ -18,6 +18,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -60,7 +61,7 @@ public class DynamicView {
     int screenWidth;
     int screenHeight;
     WindowManager wm;
-    GradientDrawable boxBackground;
+//    GradientDrawable boxBackground;
     FrameLayout.LayoutParams labelParams;
     List<TrackedBox> previousDetections = new ArrayList<>();
     Map<TrackedBox, View> overlayMap = new HashMap<>();
@@ -79,9 +80,9 @@ public class DynamicView {
         this.screenHeight = bounds.height();
 
         // Create a solid box with border (this will not include the label)
-        boxBackground = new GradientDrawable();
-        boxBackground.setColor(Color.argb(200, 0, 0, 0)); // solid/semi-transparent fill
-        boxBackground.setStroke(4, Color.RED); // border color + thickness
+//        boxBackground = new GradientDrawable();
+//        boxBackground.setColor(Color.argb(200, 0, 0, 0)); // solid/semi-transparent fill
+//        boxBackground.setStroke(4, Color.RED); // border color + thickness
 
         labelParams = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -109,11 +110,34 @@ public class DynamicView {
         }
 
         // remove overlays for boxes that no longer exist
+//        overlayMap.entrySet().removeIf(entry -> {
+//            TrackedBox tb = entry.getKey();
+//            if (!previousDetections.contains(tb)) {
+//                wm.removeView(entry.getValue());
+//                return true; // remove from map
+//            }
+//            return false;
+//        });
         overlayMap.entrySet().removeIf(entry -> {
             TrackedBox tb = entry.getKey();
             if (!previousDetections.contains(tb)) {
-                wm.removeView(entry.getValue());
-                return true; // remove from map
+                View v = entry.getValue();
+
+                // Clear all references before removal
+                if (v instanceof FrameLayout) {
+                    FrameLayout frame = (FrameLayout) v;
+                    frame.removeAllViews();
+                    frame.setBackground(null);
+                }
+
+                try {
+                    wm.removeView(v);
+                } catch (IllegalArgumentException e) {
+                    // Already removed
+                    Log.i("dynamicview", "already removed wm");
+                }
+
+                return true;
             }
             return false;
         });
@@ -132,7 +156,11 @@ public class DynamicView {
     private View createOverlayView(DetectionResult dr) {
         // Outer container (handles position and border)
         FrameLayout boxContainer = new FrameLayout(mcontext);
-        boxContainer.setBackground(boxBackground);
+        GradientDrawable boxBg = new GradientDrawable();
+        boxBg.setColor(Color.argb(200, 0, 0, 0));
+        boxBg.setStroke(4, Color.RED);
+        boxContainer.setBackground(boxBg);
+//        boxContainer.setBackground(boxBackground);
 
         TextView labelView = setText(dr);
 
@@ -194,7 +222,21 @@ public class DynamicView {
         params.height = (int) height;
         wm.updateViewLayout(v, params);
     }
-
+    private void removeOverlay(TrackedBox tb) {
+        View v = overlayMap.get(tb);
+        if (v != null) {
+            // Clear background to release Drawable
+            if (v instanceof FrameLayout) {
+                FrameLayout frame = (FrameLayout) v;
+                if (frame.getChildCount() > 0) {
+                    TextView label = (TextView) frame.getChildAt(0);
+                    label.setBackground(null);
+                }
+                frame.setBackground(null);
+            }
+            wm.removeView(v);
+        }
+    }
     private List<DetectionResult> updateTracking(List<DetectionResult> dt, long now) {
         if (!dt.isEmpty()) {
             boolean[] matched = new boolean[dt.size()];
@@ -244,7 +286,8 @@ public class DynamicView {
             if (b.misses > MAX_MISSES || age > DETECTION_PERSIST_MS) {
                 // remove overlay immediately when tracking is lost
                 if (overlayMap.containsKey(b)) {
-                    wm.removeView(overlayMap.get(b));
+//                    wm.removeView(overlayMap.get(b));
+                    removeOverlay(b);
                     overlayMap.remove(b);
                 }
                 it.remove();
@@ -273,8 +316,15 @@ public class DynamicView {
     }
     public void clearDetectionOverlays(){
         for (View v : overlayMap.values()){
-            wm.removeView(v);
+            try {
+                wm.removeView(v);
+
+            } catch (Exception e) {
+                Log.e("DynamicView", "view already removed");
+            }
         }
+        overlayMap.clear();
+        previousDetections.clear();
     }
 }
 
