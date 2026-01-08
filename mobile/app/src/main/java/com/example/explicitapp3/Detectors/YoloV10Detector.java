@@ -54,7 +54,7 @@ public class YoloV10Detector {
     GpuDelegate gpuDelegate;
     ImageProcessor imageProcessor;
 
-//    new
+    //    new
     TensorImage tensorImage;
     TensorBuffer output;
     Bitmap resizedBitmap;
@@ -75,16 +75,16 @@ public class YoloV10Detector {
         ByteBuffer model = FileUtil.loadMappedFile(context, MODEL_PATH);
         Interpreter.Options options = new Interpreter.Options();
         CompatibilityList compatibilityList = new CompatibilityList();
-        if (compatibilityList.isDelegateSupportedOnThisDevice()) {
-            Log.w(TAG, "GPU SUPPORTED" );
-            GpuDelegate.Options delegateOptions = compatibilityList.getBestOptionsForThisDevice();
-            gpuDelegate = new GpuDelegate(delegateOptions);
-            options.addDelegate(gpuDelegate);
-        } else {
-            Log.w(TAG, "GPU NOT SUPPORTED" );
+//        if (compatibilityList.isDelegateSupportedOnThisDevice()) {
+//            Log.w(TAG, "GPU SUPPORTED");
+//            GpuDelegate.Options delegateOptions = compatibilityList.getBestOptionsForThisDevice();
+//            gpuDelegate = new GpuDelegate(delegateOptions);
+//            options.addDelegate(gpuDelegate);
+//        } else {
+            Log.w(TAG, "GPU NOT SUPPORTED");
             Log.w(TAG, "available processors: " + Runtime.getRuntime().availableProcessors());
             options.setNumThreads(Runtime.getRuntime().availableProcessors());
-        }
+//        }
 
 
         interpreter = new Interpreter(model, options);
@@ -139,9 +139,9 @@ public class YoloV10Detector {
         );
     }
 
-//    this runs every detect()
+
 //    public ResizeResult resize(Bitmap bitmap) {
-////        Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, tensorWidth, tensorHeight, false);
+//        Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, tensorWidth, tensorHeight, false);
 //        Canvas canvas = new Canvas(resizedBitmap);
 //        canvas.drawBitmap(bitmap, null,
 //                new Rect(0, 0, tensorWidth, tensorHeight),
@@ -150,51 +150,85 @@ public class YoloV10Detector {
 //        TensorImage processedImage = imageProcessor.process(tensorImage);
 //        return new ResizeResult(processedImage.getBuffer(), resizedBitmap);
 //    }
-private void resizeInto(Bitmap src, Bitmap dst) {
-    Canvas canvas = new Canvas(dst);
-    canvas.drawBitmap(src, null,
-            new Rect(0, 0, tensorWidth, tensorHeight),
-            null);
-}
-// run the interpreter
+    private void resizeInto(Bitmap src, Bitmap dst) {
+        Canvas canvas = new Canvas(dst);
+        canvas.drawBitmap(src, null,
+                new Rect(0, 0, tensorWidth, tensorHeight),
+                null);
+    }
+
+    // run the interpreter
     public ClassifyResults detect(Bitmap bitmap) {
+        Log.i(TAG, "\n");
+        long now = System.currentTimeMillis();
 //        ResizeResult resizeResult = resize(bitmap);
         resizeInto(bitmap, resizedBitmap);
+        Log.i(TAG, "resizeInto(): " + (System.currentTimeMillis() - now));
+
         tensorImage.load(resizedBitmap);
+        Log.i(TAG, "tensorImage.load(): " + (System.currentTimeMillis() - now));
+
         TensorImage processedImage = imageProcessor.process(tensorImage);
-        interpreter.run(processedImage.getBuffer(), output.getBuffer());
+        Log.i(TAG, "imageProcessor.process(): " + (System.currentTimeMillis() - now));
+
+        Object input = processedImage.getBuffer();
+        Log.i(TAG, "input.getBuffer(): " + (System.currentTimeMillis() - now));
+
+        Object outputb = output.getBuffer();
+        Log.i(TAG, "output.getBuffer(): " + (System.currentTimeMillis() - now));
+
+        interpreter.run(input, outputb);
+        Log.i(TAG, "interpreter.run(): " + (System.currentTimeMillis() - now));
+
         List<DetectionResult> detectionResultList = getBoundsList(bitmap, output.getFloatArray());
+
+
         return new ClassifyResults(null, detectionResultList);
     }
 
-//    get the coordinates and label
+    //    get the coordinates and label
     public List<DetectionResult> getBoundsList(Bitmap bitmap, float[] predictions) {
-        List<DetectionResult> detectionResults = new ArrayList<>();
-        for (int i = 0; i < numElements; i++) {
-            int offset = i * numChannel;
+        long now = System.currentTimeMillis();
+
+        final int elements = numElements;
+        final int channels = numChannel;
+        final float threshold = CONFIDENCE_THRESHOLD;
+        final List<String> lbls = labels;
+
+        List<DetectionResult> results = new ArrayList<>(elements / 2);
+
+        for (int i = 0, offset = 0; i < elements; i++, offset += channels) {
             float confidence = predictions[offset + 4];
-            if (confidence > CONFIDENCE_THRESHOLD) {
-                int labelId = (int) predictions[offset + 5];
-                String label = labels.get(labelId);
-                if (label.equals("safe")) continue;
+            if (confidence <= threshold) continue;
 
-                float x = predictions[offset];
-                float y = predictions[offset + 1];
-                float w = predictions[offset + 2];
-                float h = predictions[offset + 3];
+            int labelId = (int) predictions[offset + 5];
+            String label = lbls.get(labelId);
+            if ("safe".equals(label)) continue;
+            Log.i(TAG,
+                    "predictions: " +
+                            predictions[offset] + ", " +
+                            predictions[offset + 1] + ", " +
+                            predictions[offset + 2] + ", " +
+                            predictions[offset + 3]
+            );
 
-                detectionResults.add(new DetectionResult(
-                        labelId, confidence,
-                        x, y, w, h,
-                        label,
-                        0
-                ));
-            }
+            results.add(new DetectionResult(
+                    labelId,
+                    confidence,
+                    predictions[offset],
+                    predictions[offset + 1],
+                    predictions[offset + 2],
+                    predictions[offset + 3],
+                    label,
+                    0
+            ));
         }
-        return detectionResults;
+        Log.i(TAG, "getBoundsList(): " + (System.currentTimeMillis() - now));
+        return results;
     }
 
-//    close the model, this runs one time
+
+    //    close the model, this runs one time
     public void cleanup() {
         if (interpreter != null) {
             interpreter.close();
@@ -205,7 +239,7 @@ private void resizeInto(Bitmap src, Bitmap dst) {
             labels.clear();
             labels = null;
         }
-        if (gpuDelegate != null){
+        if (gpuDelegate != null) {
             gpuDelegate.close();
             gpuDelegate = null;
         }

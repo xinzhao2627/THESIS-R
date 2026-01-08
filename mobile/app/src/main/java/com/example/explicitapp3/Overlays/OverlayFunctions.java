@@ -39,6 +39,9 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class OverlayFunctions {
     private MediaProjectionManager mediaProjectionManager;
@@ -62,8 +65,10 @@ public class OverlayFunctions {
     private static final String TAG = "OverlayFunctions";
     List<TrackedBox> previousDetections = new ArrayList<>();
 
-
+    String imageModelName = "";
+    String textModelName = "";
     DynamicView dynamicView;
+
     private static class TrackedBox {
         DetectionResult dr;
         long lastSeen;
@@ -135,56 +140,85 @@ public class OverlayFunctions {
     }
 
     public void initImageReader() {
+
         handlerThread = new HandlerThread("ImageProcessor");
         handlerThread.start();
         handler = new Handler(handlerThread.getLooper());
         mainHandler = new Handler(Looper.getMainLooper());
         int[] boundsRes = getBounds();
+        ExecutorService inferenceExecutor = Executors.newSingleThreadExecutor();
+        AtomicBoolean isProcessing = new AtomicBoolean(false);
         imageReader = ImageReader.newInstance(
                 boundsRes[0],
                 boundsRes[1],
                 PixelFormat.RGBA_8888,
-                3
+                2
         );
-        imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
 
+        imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
             @Override
             public void onImageAvailable(ImageReader reader) {
                 Image image = reader.acquireLatestImage();
                 if (image != null) {
-                    Bitmap bitmap = imageToBitmap(image);
-                    processImage(image,bitmap);
+                    if (!isProcessing.compareAndSet(false, true)) {
+                        image.close();
+                        return;
+                    }
+
+                    inferenceExecutor.execute(() -> {
+                        long now = System.currentTimeMillis();
+
+                        Bitmap bitmap = imageToBitmap(image);
+                        image.close();
+
+                        processImage(bitmap);
+
+                        Log.i(TAG, "process: " + (System.currentTimeMillis() - now));
+                        isProcessing.set(false);
+                    });
+
                 }
             }
         }, handler);
+
         surface = imageReader.getSurface();
         initRecorder();
     }
 
     public void setupDynamicOverlay() {
-        if (dynamicView == null){
-            dynamicView = new DynamicView(mcontext, wm);
+        if (dynamicView == null) {
+            dynamicView = new DynamicView(mcontext, wm, imageModelName, textModelName);
         }
     }
 
-    private void processImage(Image image ,Bitmap bitmap) {
+    private void processImage(Bitmap bitmap) {
+        Log.i(TAG, "time: \n");
+        long now = System.currentTimeMillis();
         List<DetectionResult> dt = new ArrayList<>();
         if (imageModel != null) {
+
             ClassifyResults res = imageModel.detect(bitmap);
+            Log.i(TAG, "model time: " + (System.currentTimeMillis() - now));
+
             dt.addAll(res.detectionResults);
         }
-        image.close();
+        if (textModel != null) {
+            List<DetectionResult> dt_text = textModel.detect(bitmap);
+            dt.addAll(dt_text);
+        }
         bitmap.recycle();
-        mainHandler.post(()-> handleUI(dt));
+        mainHandler.post(() -> handleUI(dt));
+//        Log.i(TAG, "processImage time: "+ (System.currentTimeMillis() - now));
     }
+
     private void handleUI(List<DetectionResult> dt) {
-            if (dynamicView != null){
+        if (dynamicView != null) {
 //                    only output 4 boxes for now
-                while (dt.size() > 4) {
-                    dt.remove(dt.size() - 1);
-                }
-                dynamicView.updateDetections(dt);
+            while (dt.size() > 4) {
+                dt.remove(dt.size() - 1);
             }
+            dynamicView.updateDetections(dt);
+        }
 
     }
 
@@ -308,11 +342,13 @@ public class OverlayFunctions {
                 || textDetector.equals(ModelTypes.ROBERTA_TAGALOG)
                 || textDetector.equals(ModelTypes.DISTILBERT_TAGALOG)
                 || textDetector.equals(ModelTypes.SVM);
-        if (isID){
+        if (isID) {
             imageModel = new ImageModel(mcontext, imageDetector);
+            imageModelName = imageDetector;
         }
-        if (isTD){
+        if (isTD) {
             textModel = new TextModel(mcontext, textDetector);
+            textModelName = textDetector;
 
         }
     }

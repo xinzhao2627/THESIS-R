@@ -83,7 +83,7 @@ public class LSTM_Detector {
             Log.i(TAG, "cfs: " + max_cfs);
 
             String l = max_cfs > 0.5 ? LABELS[1] : LABELS[0];
-//            Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
+            Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
 //            Log.i(TAG, "label: " + l + "  max cfs: " + max_cfs);
 //            Log.i(TAG, "\n");
             if (l.equals(LABELS[1])) {

@@ -31,6 +31,7 @@ import android.widget.TextView;
 
 import com.example.explicitapp3.R;
 import com.example.explicitapp3.Types.DetectionResult;
+import com.example.explicitapp3.Types.ModelTypes;
 
 import org.w3c.dom.Text;
 
@@ -70,19 +71,18 @@ public class DynamicView {
     int MAX_MISSES = 20;
     float IOU_THRESHOLD = 0.45f;
 
-    public DynamicView(Context mcontext, WindowManager wm) {
+    String imageModelName;
+    String textModelName;
+
+    public DynamicView(Context mcontext, WindowManager wm, String imageModelName, String textModelName) {
         this.mcontext = mcontext;
         this.wm = wm;
-
+        this.imageModelName = imageModelName;
+        this.textModelName = textModelName;
         WindowMetrics metrics = wm.getCurrentWindowMetrics();
         Rect bounds = metrics.getBounds();
         this.screenWidth = bounds.width();
         this.screenHeight = bounds.height();
-
-        // Create a solid box with border (this will not include the label)
-//        boxBackground = new GradientDrawable();
-//        boxBackground.setColor(Color.argb(200, 0, 0, 0)); // solid/semi-transparent fill
-//        boxBackground.setStroke(4, Color.RED); // border color + thickness
 
         labelParams = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -172,6 +172,19 @@ public class DynamicView {
         float height = (dr.bottom - dr.top) * screenHeight;
         float x = dr.left * screenWidth;
         float y = dr.top * screenHeight;
+
+        if (imageModelName == ModelTypes.MOBILENET_SSD) {
+
+            float leftPx   = dr.left   * screenWidth;
+            float topPx    = dr.top    * screenHeight;
+            float rightPx  = dr.right  * screenWidth;
+            float bottomPx = dr.bottom * screenHeight;
+
+            width  = rightPx - leftPx;
+            height = bottomPx - topPx;
+            x = leftPx;
+            y = topPx;
+        }
 
         // enlarge if modelType == 1
         if (dr.modelType == 1) {
