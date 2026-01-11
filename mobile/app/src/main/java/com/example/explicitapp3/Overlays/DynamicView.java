@@ -62,14 +62,14 @@ public class DynamicView {
     int screenWidth;
     int screenHeight;
     WindowManager wm;
-//    GradientDrawable boxBackground;
+
     FrameLayout.LayoutParams labelParams;
     List<TrackedBox> previousDetections = new ArrayList<>();
     Map<TrackedBox, View> overlayMap = new HashMap<>();
 
     long DETECTION_PERSIST_MS = 2000;
     int MAX_MISSES = 20;
-    float IOU_THRESHOLD = 0.45f;
+    float IOU_THRESHOLD = 0.6f;
 
     String imageModelName;
     String textModelName;
@@ -89,6 +89,17 @@ public class DynamicView {
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 Gravity.TOP | Gravity.START
         );
+
+
+    }
+//    move all previous detection's view upward or downard depending on the Y-offset:
+    public void moveDetections(float offset){
+//        iterate all existing overlays
+        for (Map.Entry<TrackedBox, View> ovl: overlayMap.entrySet()){
+            View v = ovl.getValue();
+            v.setTranslationY(v.getTranslationY() + offset);
+
+        }
     }
 
     public void updateDetections(List<DetectionResult> newDetections) {
@@ -100,7 +111,7 @@ public class DynamicView {
         // create or update overlays for current tracked boxes
         for (TrackedBox tb : previousDetections) {
             if (!overlayMap.containsKey(tb)) {
-                // new tracked box → create overlay
+                // new tracked box -> create overlay
                 View boxView = createOverlayView(tb.dr);
                 overlayMap.put(tb, boxView);
             } else {
@@ -110,14 +121,6 @@ public class DynamicView {
         }
 
         // remove overlays for boxes that no longer exist
-//        overlayMap.entrySet().removeIf(entry -> {
-//            TrackedBox tb = entry.getKey();
-//            if (!previousDetections.contains(tb)) {
-//                wm.removeView(entry.getValue());
-//                return true; // remove from map
-//            }
-//            return false;
-//        });
         overlayMap.entrySet().removeIf(entry -> {
             TrackedBox tb = entry.getKey();
             if (!previousDetections.contains(tb)) {
@@ -141,6 +144,7 @@ public class DynamicView {
             }
             return false;
         });
+
     }
 
     // initialize text design
@@ -250,8 +254,11 @@ public class DynamicView {
             wm.removeView(v);
         }
     }
+//    dt is the current list of detection results
+//    now is just milliseconds tracker
     private List<DetectionResult> updateTracking(List<DetectionResult> dt, long now) {
         if (!dt.isEmpty()) {
+//          this is just the iou,
             boolean[] matched = new boolean[dt.size()];
             for (TrackedBox tb : previousDetections) {
 
@@ -280,8 +287,9 @@ public class DynamicView {
                 }
             }
 
+//          if a detection result is new, add it in the previous detections (iou)
             for (int i = 0; i < dt.size(); i++) {
-                if (!matched[i]) {
+                if (!matched[i] && previousDetections.size() < 7) {
                     previousDetections.add(new TrackedBox(dt.get(i), now));
                 }
             }

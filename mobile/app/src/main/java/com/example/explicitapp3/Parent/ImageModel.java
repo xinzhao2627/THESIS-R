@@ -7,6 +7,8 @@ import android.util.Log;
 import com.example.explicitapp3.Detectors.Mobilenet_ssd_Detector;
 import com.example.explicitapp3.Detectors.Mobilenet_ssd_Detector2;
 import com.example.explicitapp3.Detectors.YoloV10Detector;
+import com.example.explicitapp3.Detectors.Yolov11n_Detector;
+import com.example.explicitapp3.Detectors.Yolov5_Detector;
 import com.example.explicitapp3.Types.ClassifyResults;
 import com.example.explicitapp3.Types.ModelTypes;
 
@@ -15,6 +17,9 @@ import java.io.IOException;
 public class ImageModel {
     private static final String TAG = "ImageModel";
     YoloV10Detector yoloV10Detector;
+    Yolov11n_Detector yolov11nDetector;
+    Yolov5_Detector yolov5Detector;
+
     Mobilenet_ssd_Detector2 mobilenetSsdDetector;
     Context mcontext;
     String selectedModel;
@@ -46,6 +51,14 @@ public class ImageModel {
 //                    ModelTypes.YOLO_V10_F32 + "/" + "labels.txt"
 //            );
             Log.i(TAG, name);
+        } else if (name.equals(ModelTypes.YOLO_V11N)) {
+            yolov11nDetector = new Yolov11n_Detector(mcontext, ModelTypes.YOLO_V11N + "/" + ModelTypes.YOLO_V11N_MODEL,
+                    ModelTypes.YOLO_V11N + "/" + "labels.txt");
+            Log.i(TAG, name);
+        }else if (name.equals(ModelTypes.YOLO_V5)) {
+            yolov5Detector = new Yolov5_Detector(mcontext, ModelTypes.YOLO_V5 + "/" + ModelTypes.YOLO_V5_MODEL,
+                    ModelTypes.YOLO_V5 + "/" + "labels.txt");
+            Log.i(TAG, name);
         }
     }
 
@@ -54,6 +67,10 @@ public class ImageModel {
             return yoloV10Detector.detect(bitmap);
         } else if (selectedModel.equals(ModelTypes.MOBILENET_SSD)) {
             return mobilenetSsdDetector.detect(bitmap);
+        } else if (selectedModel.equals(ModelTypes.YOLO_V11N)) {
+            return yolov11nDetector.detect(bitmap);
+        } else if (selectedModel.equals(ModelTypes.YOLO_V5)){
+            return yolov5Detector.detect(bitmap);
         }
         return null;
     }

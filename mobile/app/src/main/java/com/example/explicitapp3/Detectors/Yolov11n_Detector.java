@@ -16,6 +16,7 @@ import com.example.explicitapp3.Types.ResizeResult;
 
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.nnapi.NnApiDelegate;
 import org.tensorflow.lite.support.common.FileUtil;
 import org.tensorflow.lite.support.common.ops.CastOp;
 import org.tensorflow.lite.support.common.ops.NormalizeOp;
@@ -36,9 +37,9 @@ import org.tensorflow.lite.gpu.GpuDelegate;
 
 // The total time complexity of this class is:
 //
-public class YoloV10Detector {
+public class Yolov11n_Detector {
     Context context;
-    public final String TAG = "YoloV10Detector";
+    public final String TAG = "YoloV11Detector";
     String MODEL_PATH;
     String LABELS_PATH;
     DataType INPUT_IMAGE_TYPE = DataType.FLOAT32;
@@ -60,31 +61,28 @@ public class YoloV10Detector {
     Bitmap resizedBitmap;
 
     //    initialize, this runs one time
-    public YoloV10Detector(Context context, String chosen_image_model, String chosen_image_label) throws IOException {
+    public Yolov11n_Detector(Context context, String chosen_image_model, String chosen_image_label) throws IOException {
         MODEL_PATH = chosen_image_model;
         LABELS_PATH = chosen_image_label;
         Log.w(TAG, "YoloV10Detector: Yolo initialized \n \n");
         long memStart = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-
         imageProcessor = new ImageProcessor.Builder()
                 .add(new NormalizeOp(0f, 255f))
-                //THIS IS Float32
                 .add(new CastOp(INPUT_IMAGE_TYPE))
                 .build();
-
         ByteBuffer model = FileUtil.loadMappedFile(context, MODEL_PATH);
         Interpreter.Options options = new Interpreter.Options();
         CompatibilityList compatibilityList = new CompatibilityList();
-//        if (compatibilityList.isDelegateSupportedOnThisDevice()) {
-//            Log.w(TAG, "GPU SUPPORTED");
-//            GpuDelegate.Options delegateOptions = compatibilityList.getBestOptionsForThisDevice();
-//            gpuDelegate = new GpuDelegate(delegateOptions);
-//            options.addDelegate(gpuDelegate);
-//        } else {
-            Log.w(TAG, "GPU NOT SUPPORTED");
-            Log.w(TAG, "available processors: " + Runtime.getRuntime().availableProcessors());
+        if (compatibilityList.isDelegateSupportedOnThisDevice()) {
+
+            GpuDelegate.Options delegateOptions = compatibilityList.getBestOptionsForThisDevice();
+            gpuDelegate = new GpuDelegate(delegateOptions);
+            options.addDelegate(gpuDelegate);
+        } else {
             options.setNumThreads(Runtime.getRuntime().availableProcessors());
-//        }
+        }
+        NnApiDelegate nnApi = new NnApiDelegate();
+        options.addDelegate(nnApi);
 
 
         interpreter = new Interpreter(model, options);
@@ -115,8 +113,8 @@ public class YoloV10Detector {
             }
         }
         if (outputShape != null) {
-            numElements = outputShape[1];
-            numChannel = outputShape[2];
+            numChannel = outputShape[1];
+            numElements = outputShape[2];
         }
         Log.w(TAG, "Numchannel: " + numChannel);
         Log.w(TAG, "Numelements: " + numElements);
@@ -140,7 +138,7 @@ public class YoloV10Detector {
     }
 
 
-//    public ResizeResult resize(Bitmap bitmap) {
+    //    public ResizeResult resize(Bitmap bitmap) {
 //        Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, tensorWidth, tensorHeight, false);
 //        Canvas canvas = new Canvas(resizedBitmap);
 //        canvas.drawBitmap(bitmap, null,
@@ -167,20 +165,13 @@ public class YoloV10Detector {
 
         tensorImage.load(resizedBitmap);
         Log.i(TAG, "tensorImage.load(): " + (System.currentTimeMillis() - now));
-
         TensorImage processedImage = imageProcessor.process(tensorImage);
         Log.i(TAG, "imageProcessor.process(): " + (System.currentTimeMillis() - now));
-
         Object input = processedImage.getBuffer();
-
         Object outputb = output.getBuffer();
-
         interpreter.run(input, outputb);
         Log.i(TAG, "interpreter.run() (oneline of code): " + (System.currentTimeMillis() - now));
-
         List<DetectionResult> detectionResultList = getBoundsList(bitmap, output.getFloatArray());
-
-
         return new ClassifyResults(null, detectionResultList);
     }
 
@@ -188,38 +179,54 @@ public class YoloV10Detector {
     public List<DetectionResult> getBoundsList(Bitmap bitmap, float[] predictions) {
         long now = System.currentTimeMillis();
 
-        final int elements = numElements;
-        final int channels = numChannel;
-        final float threshold = CONFIDENCE_THRESHOLD;
-        final List<String> lbls = labels;
+        List<DetectionResult> results = new ArrayList<>();
 
-        List<DetectionResult> results = new ArrayList<>(elements / 2);
+        for (int c = 0; c < numElements; c++) {
 
-        for (int i = 0, offset = 0; i < elements; i++, offset += channels) {
-            float confidence = predictions[offset + 4];
-            if (confidence <= threshold) continue;
+            float maxConf = CONFIDENCE_THRESHOLD;
+            int maxIdx = -1;
 
-            int labelId = (int) predictions[offset + 5];
-            String label = lbls.get(labelId);
-            if ("safe".equals(label)) continue;
-            Log.i(TAG,
-                    "predictions: " +
-                            predictions[offset] + ", " +
-                            predictions[offset + 1] + ", " +
-                            predictions[offset + 2] + ", " +
-                            predictions[offset + 3]
-            );
+            int j = 4;
+            int arrayIdx = c + numElements * j;
 
-            results.add(new DetectionResult(
-                    labelId,
-                    confidence,
-                    predictions[offset],
-                    predictions[offset + 1],
-                    predictions[offset + 2],
-                    predictions[offset + 3],
-                    label,
-                    0
-            ));
+            while (j < numChannel) {
+                if (predictions[arrayIdx] > maxConf) {
+                    maxConf = predictions[arrayIdx];
+                    maxIdx = j - 4;
+                }
+                j++;
+                arrayIdx += numElements;
+            }
+
+            if (maxConf > CONFIDENCE_THRESHOLD) {
+
+                String clsName = labels.get(maxIdx);
+
+                float cx = predictions[c];
+                float cy = predictions[c + numElements];
+                float w = predictions[c + numElements * 2];
+                float h = predictions[c + numElements * 3];
+                float x1 = cx - w / 2f;
+                float y1 = cy - h / 2f;
+                float x2 = cx + w / 2f;
+                float y2 = cy + h / 2f;
+                if (x1 < 0F || x1 > 1F) continue;
+                if (y1 < 0F || y1 > 1F) continue;
+                if (x2 < 0F || x2 > 1F) continue;
+                if (y2 < 0F || y2 > 1F) continue;
+                Log.i(TAG, String.format("Box: cx=%.1f cy=%.1f w=%.1f h=%.1f",
+                        cx, cy, w, h));
+                results.add(new DetectionResult(
+                        maxIdx,
+                        maxConf,
+                        x1,
+                        y1,
+                        x2,
+                        y2,
+                        clsName,
+                        0
+                ));
+            }
         }
         Log.i(TAG, "getBoundsList(): " + (System.currentTimeMillis() - now));
         return results;

@@ -5,6 +5,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.hardware.display.DisplayManager;
@@ -14,13 +15,17 @@ import android.media.ImageReader;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.Surface;
+import android.view.View;
 import android.view.WindowManager;
 import android.view.WindowMetrics;
 
@@ -68,6 +73,7 @@ public class OverlayFunctions {
     String imageModelName = "";
     String textModelName = "";
     DynamicView dynamicView;
+    View overlayView;
 
     private static class TrackedBox {
         DetectionResult dr;
@@ -136,7 +142,6 @@ public class OverlayFunctions {
                 null,
                 handler
         );
-
     }
 
     public void initImageReader() {
@@ -158,6 +163,7 @@ public class OverlayFunctions {
         imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
             @Override
             public void onImageAvailable(ImageReader reader) {
+
                 Image image = reader.acquireLatestImage();
                 if (image != null) {
                     if (!isProcessing.compareAndSet(false, true)) {
@@ -169,11 +175,13 @@ public class OverlayFunctions {
                         long now = System.currentTimeMillis();
 
                         Bitmap bitmap = imageToBitmap(image);
+                        Log.i(TAG, "processtime: bitmap: " + (System.currentTimeMillis() - now) + "ms");
+
                         image.close();
 
                         processImage(bitmap);
 
-                        Log.i(TAG, "process: " + (System.currentTimeMillis() - now));
+                        Log.i(TAG, "processtime: " + (System.currentTimeMillis() - now) + "ms,  model: " + imageModelName);
                         isProcessing.set(false);
                     });
 
@@ -184,21 +192,30 @@ public class OverlayFunctions {
         surface = imageReader.getSurface();
         initRecorder();
     }
-
-    public void setupDynamicOverlay() {
-        if (dynamicView == null) {
-            dynamicView = new DynamicView(mcontext, wm, imageModelName, textModelName);
-        }
-    }
+    static final float SCROLL_EPS = 1f;
+    private Bitmap previousScrollFrame = null;
 
     private void processImage(Bitmap bitmap) {
+////        FOR INDICATION ONLY
+//        if (previousScrollFrame != null) {
+////            float deltaY = estimateScrollDelta(previousScrollFrame, bitmap);
+//            if (isScrolling(previousScrollFrame, bitmap)){
+//                Log.i(TAG, "processImage: scrolling...");
+//            } else {
+//                Log.i(TAG, "processImage: not scrolling..." );
+//            }
+//            previousScrollFrame.recycle();
+//        }
+//        // now update the previous
+//        previousScrollFrame = bitmap.copy(Bitmap.Config.ARGB_8888, false);
+
         Log.i(TAG, "time: \n");
         long now = System.currentTimeMillis();
         List<DetectionResult> dt = new ArrayList<>();
         if (imageModel != null) {
 
             ClassifyResults res = imageModel.detect(bitmap);
-            Log.i(TAG, "model time: " + (System.currentTimeMillis() - now));
+//            Log.i(TAG, "model time: " + (System.currentTimeMillis() - now));
 
             dt.addAll(res.detectionResults);
         }
@@ -206,30 +223,91 @@ public class OverlayFunctions {
             List<DetectionResult> dt_text = textModel.detect(bitmap);
             dt.addAll(dt_text);
         }
-        bitmap.recycle();
+
+        // show the boxes
         mainHandler.post(() -> handleUI(dt));
+        bitmap.recycle();
 //        Log.i(TAG, "processImage time: "+ (System.currentTimeMillis() - now));
     }
+    private float estimateScrollDelta(Bitmap prev, Bitmap curr) {
+        long now = System.currentTimeMillis();
+        int w = prev.getWidth();
+        int h = prev.getHeight();
 
+        int stride = 2;
+        int maxShift = 20;
+
+        int[] r1 = new int[w];
+        int[] r2 = new int[w];
+
+        long bestCost = Long.MAX_VALUE;
+        int bestShift = 0;
+
+        for (int shift = -maxShift; shift <= maxShift; shift++) {
+            long cost = 0;
+
+            for (int y = h / 4; y < h * 3 / 4; y += stride) {
+                int y2 = y + shift;
+                if (y2 < 0 || y2 >= h) continue;
+
+                prev.getPixels(r1, 0, w, 0, y, w, 1);
+                curr.getPixels(r2, 0, w, 0, y2, w, 1);
+
+                for (int x = 0; x < w; x += stride) {
+                    int a = (r1[x] >> 16) & 0xFF;
+                    int b = (r2[x] >> 16) & 0xFF;
+                    cost += Math.abs(a - b);
+                }
+            }
+
+            if (cost < bestCost) {
+                bestCost = cost;
+                bestShift = shift;
+            }
+        }
+        Log.i(TAG, "scrolling time: "+ (System.currentTimeMillis() - now));
+
+        return bestShift;
+    }
+    private boolean isScrolling(Bitmap prev, Bitmap curr) {
+        long now = System.currentTimeMillis();
+
+        int w = prev.getWidth();
+        int h = prev.getHeight();
+
+        int[] a = new int[w];
+        int[] b = new int[w];
+
+        int y = h / 2;
+
+        prev.getPixels(a, 0, w, 0, y, w, 1);
+        curr.getPixels(b, 0, w, 0, y + 5, w, 1);
+
+        long diff = 0;
+        for (int i = 0; i < w; i += 8) {
+            diff += Math.abs(((a[i] >> 16) & 0xFF) - ((b[i] >> 16) & 0xFF));
+        }
+        Log.i(TAG, "scrolling time: "+ (System.currentTimeMillis() - now) + " val: " + diff);
+
+        return diff > 10000;
+    }
     private void handleUI(List<DetectionResult> dt) {
         if (dynamicView != null) {
-//                    only output 4 boxes for now
-            while (dt.size() > 4) {
-                dt.remove(dt.size() - 1);
-            }
+//          only output 4 boxes for now
+
             dynamicView.updateDetections(dt);
         }
 
     }
+    public void setupDynamicOverlay() {
+        if (dynamicView == null) {
+            dynamicView = new DynamicView(mcontext, wm, imageModelName, textModelName);
+        }
+    }
 
-    /**
-     * Converts an Android Image object to a Bitmap for processing.
-     * Reconstruict the image using pixelstride.
-     *
-     * @param image The source Image from ImageReader
-     * @return Bitmap of the image
-     * @see Image.Plane
-     */
+
+
+// PixelFormat.RGBA_8888 image to bitmap
     public Bitmap imageToBitmap(Image image) {
         Image.Plane[] planes = image.getPlanes();
         ByteBuffer buffer = planes[0].getBuffer();
@@ -240,8 +318,50 @@ public class OverlayFunctions {
         Bitmap bitmap = Bitmap.createBitmap(bitmapWidth, image.getHeight(), Bitmap.Config.ARGB_8888);
         bitmap.copyPixelsFromBuffer(buffer);
         return bitmap;
+//        int width = image.getWidth();
+//        int height = image.getHeight();
+//        final Image.Plane[] planes = image.getPlanes();
+//        final ByteBuffer buffer = planes[0].getBuffer();
+//
+//        int pixelStride = planes[0].getPixelStride();
+//
+//        int rowStride = planes[0].getRowStride();
+//        int rowPadding = rowStride - pixelStride * width;
+//        Bitmap bitmap = Bitmap.createBitmap(width + rowPadding / pixelStride, height, Bitmap.Config.ARGB_4444);
+//        bitmap.copyPixelsFromBuffer(buffer);
+//        bitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height);
+//        try {
+//            saveBitmapToGallery(mcontext, bitmap, "capture_" + System.currentTimeMillis());
+//
+//        } catch (Exception e) {
+//            Log.i(TAG, "imageToBitmap: exception" + e.getMessage());
+//        }
+//        return bitmap;
     }
+    public static void saveBitmapToGallery(
+            Context context,
+            Bitmap bitmap,
+            String fileName
+    ) throws IOException {
 
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, fileName + ".png");
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+        values.put(MediaStore.Images.Media.RELATIVE_PATH,
+                Environment.DIRECTORY_PICTURES + "/MyApp");
+
+        Uri uri = context.getContentResolver()
+                .insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+
+        if (uri == null) {
+            throw new IOException("Failed to create MediaStore entry");
+        }
+
+        try (OutputStream out =
+                     context.getContentResolver().openOutputStream(uri)) {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+        }
+    }
     /**
      * Performs cleanup of all resources used by OverlayFunctions and OverlayService.
      * This method should be called when the service is stopping to prevent memory leaks.
@@ -334,19 +454,19 @@ public class OverlayFunctions {
      */
 
     public void initModel(String textDetector, String imageDetector) throws IOException {
-        boolean isID = imageDetector.equals(ModelTypes.YOLO_V10_F32) || imageDetector.equals(ModelTypes.YOLO_V10_F16) || imageDetector.equals(ModelTypes.MOBILENET_SSD);
-
-        boolean isTD = textDetector.equals(ModelTypes.LSTM)
-                || textDetector.equals(ModelTypes.NaiveBayes)
-                || textDetector.equals(ModelTypes.LogisticRegression)
-                || textDetector.equals(ModelTypes.ROBERTA_TAGALOG)
-                || textDetector.equals(ModelTypes.DISTILBERT_TAGALOG)
-                || textDetector.equals(ModelTypes.SVM);
-        if (isID) {
+//        boolean isID = imageDetector.equals(ModelTypes.YOLO_V10_F32) || imageDetector.equals(ModelTypes.YOLO_V10_F16) || imageDetector.equals(ModelTypes.MOBILENET_SSD);
+//
+//        boolean isTD = textDetector.equals(ModelTypes.LSTM)
+//                || textDetector.equals(ModelTypes.NaiveBayes)
+//                || textDetector.equals(ModelTypes.LogisticRegression)
+//                || textDetector.equals(ModelTypes.ROBERTA_TAGALOG)
+//                || textDetector.equals(ModelTypes.DISTILBERT_TAGALOG)
+//                || textDetector.equals(ModelTypes.SVM);
+        if (!imageDetector.isEmpty()) {
             imageModel = new ImageModel(mcontext, imageDetector);
             imageModelName = imageDetector;
         }
-        if (isTD) {
+        if (!textDetector.isEmpty()) {
             textModel = new TextModel(mcontext, textDetector);
             textModelName = textDetector;
 

@@ -9,6 +9,13 @@ public class ModelTypes {
     public static final String YOLO_V10_F32_MODEL = "yolov10n_float32.tflite";
 //    public static final String YOLO_V10_F32_MODEL = "yolo_latest.tflite";
 
+    public static final String YOLO_V11N = "yolov11n";
+    public static final String YOLO_V11N_MODEL = "best_int8.tflite";
+
+    public static final String YOLO_V5 = "yolov5";
+    public static final String YOLO_V5_MODEL = "f16nu.tflite";
+
+
     public static final String MOBILENET_SSD = "mobilenet_ssd";
 //    public static final String MOBILENET_SSD_MODEL = "mobilenet_ssd1.tflite";
 public static final String MOBILENET_SSD_MODEL = "mobilenet_ssd2.tflite";
