@@ -82,6 +82,12 @@ public class ImageModel {
         } else if (mobilenetSsdDetector != null) {
             mobilenetSsdDetector.cleanup();
             mobilenetSsdDetector = null;
+        } else if (yolov11nDetector != null) {
+            yolov11nDetector.cleanup();
+            yolov11nDetector = null;
+        } else if (yolov5Detector != null) {
+            yolov5Detector.cleanup();
+            yolov5Detector = null;
         }
 
     }

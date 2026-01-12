@@ -36,7 +36,10 @@ import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.PriorityQueue;
 
 import org.tensorflow.lite.gpu.CompatibilityList;
 import org.tensorflow.lite.gpu.GpuDelegate;
@@ -50,7 +53,7 @@ public class Yolov5_Detector {
     String LABELS_PATH;
     DataType INPUT_IMAGE_TYPE = DataType.FLOAT32;
     DataType OUTPUT_IMAGE_TYPE = DataType.FLOAT32;
-    private static final float CONFIDENCE_THRESHOLD = 0.25f;
+    private static final float CONFIDENCE_THRESHOLD = 0.30f;
 
     List<String> labels;
     Interpreter interpreter;
@@ -63,12 +66,15 @@ public class Yolov5_Detector {
     TensorImage tensorImage;
     TensorBuffer output;
     Bitmap resizedBitmap;
+    HashMap<String, Integer> mapLabel;
 
     public Yolov5_Detector(Context context, String chosen_image_model, String chosen_image_label) throws IOException {
         MODEL_PATH = chosen_image_model;
         LABELS_PATH = chosen_image_label;
 
-
+        mapLabel = new HashMap<>();
+        mapLabel.put("nsfw", 0);
+        mapLabel.put("safe", 1);
         ByteBuffer model = FileUtil.loadMappedFile(context, MODEL_PATH);
         Interpreter.Options options = new Interpreter.Options();
         CompatibilityList compatibilityList = new CompatibilityList();
@@ -96,7 +102,7 @@ public class Yolov5_Detector {
 //            }
 //            bufferedReader.close();
 //        }
-        labels = FileUtil.loadLabels(context,LABELS_PATH);
+        labels = FileUtil.loadLabels(context, LABELS_PATH);
         Log.i(TAG, "Success reading label: " + LABELS_PATH);
 
         int[] inputShape = interpreter.getInputTensor(0).shape();
@@ -184,104 +190,148 @@ public class Yolov5_Detector {
         long now = System.currentTimeMillis();
 
         List<DetectionResult> results = new ArrayList<>();
-//
-////
-//
-//
-//        int numBoxes = numChannel;
-//        int stride = numElements;
-////        int numClasses = stride - 5;
-//
-//        for (int i = 0; i < numBoxes; i++) {
-//
-//            int offset = i * stride;
-//
-//            float cx = predictions[offset + 0];
-//            float cy = predictions[offset + 1];
-//            float w  = predictions[offset + 2];
-//            float h  = predictions[offset + 3];
-//
-//            float objectness = predictions[offset + 4];
-//            if (objectness < CONFIDENCE_THRESHOLD) continue;
-//
-//            int bestClass = -1;
-//            float bestClassScore = 0f;
-//            float[] classScores = Arrays.copyOfRange(predictions, 5 + offset, stride + offset);
-//            for (int c = 0; c < classScores.length; c++) {
-//                if (classScores[c] > bestClassScore) {
-//                    bestClassScore = classScores[c];
-//                    bestClass = c;
-//                }
-//            }
-//
-//            float confidence = objectness * bestClassScore;
-//            if (confidence < CONFIDENCE_THRESHOLD) continue;
-//
-//            float x1 = cx - w / 2f;
-//            float y1 = cy - h / 2f;
-//            float x2 = cx + w / 2f;
-//            float y2 = cy + h / 2f;
-//
-////            // clamp (YOLOv5 Python behavior)
-////            x1 = Math.max(0f, Math.min(1f, x1));
-////            y1 = Math.max(0f, Math.min(1f, y1));
-////            x2 = Math.max(0f, Math.min(1f, x2));
-////            y2 = Math.max(0f, Math.min(1f, y2));
-//            Log.i(TAG, "getBoundsList: best class is: "+bestClass + " " +labels.get(bestClass));
-//            results.add(new DetectionResult(
-//                    bestClass,
-//                    confidence,
-//                    x1,
-//                    y1,
-//                    x2,
-//                    y2,
-//                    labels.get(bestClass),
-//                    0
-//            ));
-//        }
 
-//        for yolov5nu:
-        int numBoxes = numElements;   // 8400
-        int numChannels = numChannel; // 84
-        int numClasses = numChannels - 4;
+
+        // for old yolov5s
+        int numBoxes = numChannel;
+        int stride = numElements;
+//        int numClasses = stride - 5;
 
         for (int i = 0; i < numBoxes; i++) {
 
-            float cx = predictions[0 * numBoxes + i];
-            float cy = predictions[1 * numBoxes + i];
-            float w  = predictions[2 * numBoxes + i];
-            float h  = predictions[3 * numBoxes + i];
+            int offset = i * stride;
+
+            float cx = predictions[offset + 0];
+            float cy = predictions[offset + 1];
+            float w = predictions[offset + 2];
+            float h = predictions[offset + 3];
+
+            float objectness = predictions[offset + 4];
+            if (objectness < CONFIDENCE_THRESHOLD) continue;
 
             int bestClass = -1;
-            float bestScore = 0f;
-
-            for (int c = 0; c < numClasses; c++) {
-                float score = predictions[(4 + c) * numBoxes + i];
-                if (score > bestScore) {
-                    bestScore = score;
+            float bestClassScore = 0f;
+            float[] classScores = Arrays.copyOfRange(predictions, 5 + offset, stride + offset);
+            for (int c = 0; c < classScores.length; c++) {
+                if (classScores[c] > bestClassScore) {
+                    bestClassScore = classScores[c];
                     bestClass = c;
                 }
             }
 
-            if (bestScore < CONFIDENCE_THRESHOLD) continue;
+            float confidence = objectness * bestClassScore;
+            if (confidence < CONFIDENCE_THRESHOLD) continue;
 
             float x1 = cx - w / 2f;
             float y1 = cy - h / 2f;
             float x2 = cx + w / 2f;
             float y2 = cy + h / 2f;
-            Log.i(TAG, "getBoundsList: best class is: "+bestClass + " " +labels.get(bestClass));
 
+//            // clamp (YOLOv5 Python behavior)
+//            x1 = Math.max(0f, Math.min(1f, x1));
+//            y1 = Math.max(0f, Math.min(1f, y1));
+//            x2 = Math.max(0f, Math.min(1f, x2));
+//            y2 = Math.max(0f, Math.min(1f, y2));
+            Log.i(TAG, "getBoundsList: best class is: " + bestClass + " " + labels.get(bestClass));
             results.add(new DetectionResult(
                     bestClass,
-                    bestScore,
-                    x1, y1, x2, y2,
+                    confidence,
+                    x1,
+                    y1,
+                    x2,
+                    y2,
                     labels.get(bestClass),
                     0
             ));
         }
-        Log.i(TAG, "getBoundsList(): " + (System.currentTimeMillis() - now));
+
+//        for yolov5nu:
+//        int numBoxes = numElements;   // 8400
+//        int numChannels = numChannel; // 84
+//        int numClasses = numChannels - 4;
+//
+//        for (int i = 0; i < numBoxes; i++) {
+//
+//            float cx = predictions[0 * numBoxes + i];
+//            float cy = predictions[1 * numBoxes + i];
+//            float w  = predictions[2 * numBoxes + i];
+//            float h  = predictions[3 * numBoxes + i];
+//
+//            int bestClass = -1;
+//            float bestScore = 0f;
+//
+//            for (int c = 0; c < numClasses; c++) {
+//                float score = predictions[(4 + c) * numBoxes + i];
+//                if (score > bestScore) {
+//                    bestScore = score;
+//                    bestClass = c;
+//                }
+//            }
+//
+//            if (bestScore < CONFIDENCE_THRESHOLD) continue;
+//
+//            float x1 = cx - w / 2f;
+//            float y1 = cy - h / 2f;
+//            float x2 = cx + w / 2f;
+//            float y2 = cy + h / 2f;
+//            Log.i(TAG, "getBoundsList: best class is: "+bestClass + " " +labels.get(bestClass));
+//
+//            results.add(new DetectionResult(
+//                    bestClass,
+//                    bestScore,
+//                    x1, y1, x2, y2,
+//                    labels.get(bestClass),
+//                    0
+//            ));
+//        }
+//        Log.i(TAG, "getBoundsList(): " + (System.currentTimeMillis() - now));
         return results;
     }
+
+//    protected ArrayList<DetectionResult> nms(ArrayList<DetectionResult> allRecognitions) {
+//        ArrayList<DetectionResult> nmsRecognitions = new ArrayList<DetectionResult>();
+//
+//        // 遍历每个类别, 在每个类别下做nms
+//        for (int i = 0; i < 7 - 5; i++) {
+//            // 这里为每个类别做一个队列, 把labelScore高的排前面
+//            PriorityQueue<DetectionResult> pq =
+//                    new PriorityQueue<DetectionResult>(
+//                            6300,
+//                            new Comparator<DetectionResult>() {
+//                                @Override
+//                                public int compare(final DetectionResult l, final DetectionResult r) {
+//                                    // Intentionally reversed to put high confidence at the head of the queue.
+//                                    return Float.compare(r.confidence, l.confidence);
+//                                }
+//                            });
+//
+//            // 相同类别的过滤出来, 且obj要大于设定的阈值
+//            for (int j = 0; j < allRecognitions.size(); ++j) {
+////                if (allRecognitions.get(j).getLabelId() == i) {
+//                if (mapLabel.get(allRecognitions.get(j)) == i && allRecognitions.get(j).confidence > CONFIDENCE_THRESHOLD) {
+//                    pq.add(allRecognitions.get(j));
+//                }
+//            }
+//
+//            // nms循环遍历
+//            while (!pq.isEmpty()) {
+//                // 概率最大的先拿出来
+//                DetectionResult[] a = new DetectionResult[pq.size()];
+//                DetectionResult[] detections = pq.toArray(a);
+//                DetectionResult max = detections[0];
+//                nmsRecognitions.add(max);
+//                pq.clear();
+//
+//                for (int k = 1; k < detections.length; k++) {
+//                    DetectionResult detection = detections[k];
+//                    if (boxIou(max.getLocation(), detection.getLocation()) < IOU_THRESHOLD) {
+//                        pq.add(detection);
+//                    }
+//                }
+//            }
+//        }
+//        return nmsRecognitions;
+//    }
 
 
     //    close the model, this runs one time

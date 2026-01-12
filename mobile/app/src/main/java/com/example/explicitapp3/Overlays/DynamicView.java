@@ -254,10 +254,51 @@ public class DynamicView {
             wm.removeView(v);
         }
     }
+    private List<DetectionResult> applyNMS(List<DetectionResult> detections, float nmsThreshold) {
+        if (detections.size() <= 1) return detections;
+
+        // Sort by confidence (highest first)
+        List<DetectionResult> sorted = new ArrayList<>(detections);
+        sorted.sort((a, b) -> Float.compare(b.confidence, a.confidence));
+
+        List<DetectionResult> kept = new ArrayList<>();
+        boolean[] suppressed = new boolean[sorted.size()];
+
+        for (int i = 0; i < sorted.size(); i++) {
+            if (suppressed[i]) continue;
+
+            DetectionResult current = sorted.get(i);
+            kept.add(current);
+
+            // Suppress overlapping boxes with lower confidence
+            for (int j = i + 1; j < sorted.size(); j++) {
+                if (suppressed[j]) continue;
+
+                DetectionResult candidate = sorted.get(j);
+
+                // Only suppress if same class (nsfw vs nsfw, safe vs safe)
+                if (current.classId == candidate.classId) {
+                    float overlap = iou(current, candidate);
+                    if (overlap > nmsThreshold) {
+                        suppressed[j] = true;
+                        Log.d("NMS", String.format("Suppressed box %s (%.2f) due to overlap %.2f with %s (%.2f)",
+                                candidate.label, candidate.confidence, overlap,
+                                current.label, current.confidence));
+                    }
+                }
+            }
+        }
+
+        Log.i("NMS", String.format("Filtered %d → %d boxes", detections.size(), kept.size()));
+        return kept;
+    }
 //    dt is the current list of detection results
 //    now is just milliseconds tracker
     private List<DetectionResult> updateTracking(List<DetectionResult> dt, long now) {
         if (!dt.isEmpty()) {
+//            prevent box overlay through nms
+            dt = applyNMS(dt, 0.5f);
+
 //          this is just the iou,
             boolean[] matched = new boolean[dt.size()];
             for (TrackedBox tb : previousDetections) {
@@ -287,10 +328,24 @@ public class DynamicView {
                 }
             }
 
-//          if a detection result is new, add it in the previous detections (iou)
+//          if a detection result is new, add it in the previous detections
+            Log.i("heyheyy", "updateTracking: current prevdec size: " + dt.size()+previousDetections.size());
             for (int i = 0; i < dt.size(); i++) {
                 if (!matched[i] && previousDetections.size() < 7) {
-                    previousDetections.add(new TrackedBox(dt.get(i), now));
+//                    previousDetections.add(new TrackedBox(dt.get(i), now));
+
+                    //new
+                    DetectionResult newBox = dt.get(i);
+
+                    // Check if this new box overlaps with ANY existing tracked box
+                    if (!overlapsWithExisting(newBox)) {
+                        previousDetections.add(new TrackedBox(newBox, now));
+                        Log.d("Tracking", String.format("Added new box: %s (%.2f)",
+                                newBox.label, newBox.confidence));
+                    } else {
+                        Log.d("Tracking", String.format("Rejected box %s (%.2f) - overlaps with tracked box",
+                                newBox.label, newBox.confidence));
+                    }
                 }
             }
 
@@ -319,7 +374,24 @@ public class DynamicView {
         for (TrackedBox tb : previousDetections) res.add(tb.dr);
         return res;
     }
+    private boolean overlapsWithExisting(DetectionResult newBox) {
+        float overlapThreshold = 0.3f; // Lower than IOU_THRESHOLD to be more strict
 
+        for (TrackedBox tracked : previousDetections) {
+            // Skip if different model types
+            if (tracked.dr.modelType != newBox.modelType) continue;
+
+            float overlap = iou(tracked.dr, newBox);
+
+            if (overlap > overlapThreshold) {
+                Log.d("Overlap", String.format("New %s overlaps %.2f with tracked %s",
+                        newBox.label, overlap, tracked.dr.label));
+                return true;
+            }
+        }
+
+        return false;
+    }
     // n^m
     private float iou(DetectionResult a, DetectionResult b) {
         float interLeft = Math.max(a.left, b.left);

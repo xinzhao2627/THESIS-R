@@ -157,21 +157,18 @@ public class OverlayFunctions {
                 boundsRes[0],
                 boundsRes[1],
                 PixelFormat.RGBA_8888,
-                2
+                60
         );
 
         imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
             @Override
             public void onImageAvailable(ImageReader reader) {
 
-                Image image = reader.acquireLatestImage();
+//                Image image = reader.acquireLatestImage();
+                Image image = reader.acquireNextImage();
                 if (image != null) {
-                    if (!isProcessing.compareAndSet(false, true)) {
-                        image.close();
-                        return;
-                    }
 
-                    inferenceExecutor.execute(() -> {
+//                    inferenceExecutor.execute(() -> {
                         long now = System.currentTimeMillis();
 
                         Bitmap bitmap = imageToBitmap(image);
@@ -182,8 +179,8 @@ public class OverlayFunctions {
                         processImage(bitmap);
 
                         Log.i(TAG, "processtime: " + (System.currentTimeMillis() - now) + "ms,  model: " + imageModelName);
-                        isProcessing.set(false);
-                    });
+
+//                    });
 
                 }
             }
