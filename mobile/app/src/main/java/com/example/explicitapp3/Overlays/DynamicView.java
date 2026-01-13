@@ -16,6 +16,8 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -40,6 +42,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * Dynamic overlay inherits views. For every N detected objects in the image,
@@ -57,7 +60,7 @@ public class DynamicView {
             this.misses = 0;
         }
     }
-    private static final float MODEL1_SCALE = 1.8f;
+    private static final float MODEL1_SCALE = 1.9f;
     Context mcontext;
     int screenWidth;
     int screenHeight;
@@ -68,11 +71,24 @@ public class DynamicView {
     Map<TrackedBox, View> overlayMap = new HashMap<>();
 
     long DETECTION_PERSIST_MS = 2000;
-    int MAX_MISSES = 20;
+    int MAX_MISSES = 5;
     float IOU_THRESHOLD = 0.6f;
 
     String imageModelName;
     String textModelName;
+
+
+//    private View colorSquare;
+//    private WindowManager.LayoutParams squareParams;
+//    private final int[] colors = {
+//            Color.RED,
+//            Color.GREEN,
+//            Color.BLUE,
+//            Color.YELLOW,
+//            Color.MAGENTA,
+//            Color.CYAN
+//    };
+//    private int colorIndex = 0;
 
     public DynamicView(Context mcontext, WindowManager wm, String imageModelName, String textModelName) {
         this.mcontext = mcontext;
@@ -89,9 +105,55 @@ public class DynamicView {
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 Gravity.TOP | Gravity.START
         );
-
+//        createColorSquare();
 
     }
+//    private void createColorSquare() {
+//        colorSquare = new View(mcontext);
+//
+//        int sizePx = 40; // square size
+//        colorSquare.setBackgroundColor(colors[0]);
+//
+//        squareParams = new WindowManager.LayoutParams(
+//                sizePx,
+//                sizePx,
+//                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+//                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+//                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+//                PixelFormat.TRANSLUCENT
+//        );
+//
+//        squareParams.gravity = Gravity.TOP | Gravity.START;
+//        squareParams.x = screenWidth / 2 - sizePx / 2;
+//        squareParams.y = screenHeight / 2 - sizePx / 2;
+//
+//
+//        wm.addView(colorSquare, squareParams);
+//        startColorRandomizer();
+//
+//    }
+//    private Handler colorHandler = new Handler(Looper.getMainLooper());
+//    private Runnable colorRunnable;
+//    private final Random random = new Random();
+//    private void startColorRandomizer() {
+//        colorRunnable = new Runnable() {
+//            @Override
+//            public void run() {
+//                int color = Color.rgb(
+//                        random.nextInt(256),
+//                        random.nextInt(256),
+//                        random.nextInt(256)
+//                );
+//
+//                if (colorSquare != null) {
+//                    colorSquare.setBackgroundColor(color);
+//                    colorHandler.postDelayed(this, 300); // change every 300ms
+//                }
+//            }
+//        };
+//
+//        colorHandler.post(colorRunnable);
+//    }
 //    move all previous detection's view upward or downard depending on the Y-offset:
     public void moveDetections(float offset){
 //        iterate all existing overlays
@@ -106,12 +168,11 @@ public class DynamicView {
         long now = System.currentTimeMillis();
 
         // update tracking (existing + new + removed)
-        List<DetectionResult> tracked = updateTracking(newDetections, now);
 
         // create or update overlays for current tracked boxes
         for (TrackedBox tb : previousDetections) {
             if (!overlayMap.containsKey(tb)) {
-                // new tracked box -> create overlay
+                // new tracked box to create overlay
                 View boxView = createOverlayView(tb.dr);
                 overlayMap.put(tb, boxView);
             } else {
@@ -119,6 +180,7 @@ public class DynamicView {
                 updateOverlayView(tb);
             }
         }
+        List<DetectionResult> tracked = updateTracking(newDetections, now);
 
         // remove overlays for boxes that no longer exist
         overlayMap.entrySet().removeIf(entry -> {
@@ -144,7 +206,7 @@ public class DynamicView {
             }
             return false;
         });
-
+        Log.i("updateDetection", "updateDetections: "+ (System.currentTimeMillis()-now)+"ms");
     }
 
     // initialize text design
@@ -191,11 +253,11 @@ public class DynamicView {
         }
 
         // enlarge if modelType == 1
-        if (dr.modelType == 1) {
+//        if (dr.modelType == 1) {
             float extraH = (height * (MODEL1_SCALE - 1)) / 2;
             y -= extraH;
             height *= MODEL1_SCALE;
-        }
+//        }
 
         // relocate box
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
@@ -227,11 +289,11 @@ public class DynamicView {
         float y = dr.top * screenHeight;
 
         // make box taller if modelType == 1
-        if (dr.modelType == 1) {
+//        if (dr.modelType == 1) {
             float extraH = (height * (MODEL1_SCALE - 1)) / 2;
             y -= extraH;
             height *= MODEL1_SCALE;
-        }
+//        }
 
         params.x = (int) x;
         params.y = (int) y;
@@ -418,6 +480,11 @@ public class DynamicView {
         }
         overlayMap.clear();
         previousDetections.clear();
+
+//        if (colorSquare != null) {
+//            wm.removeView(colorSquare);
+//            colorSquare = null;
+//        }
     }
 }
 

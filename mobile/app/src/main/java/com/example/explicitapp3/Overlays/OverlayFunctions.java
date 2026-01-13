@@ -459,11 +459,11 @@ public class OverlayFunctions {
 //                || textDetector.equals(ModelTypes.ROBERTA_TAGALOG)
 //                || textDetector.equals(ModelTypes.DISTILBERT_TAGALOG)
 //                || textDetector.equals(ModelTypes.SVM);
-        if (!imageDetector.isEmpty()) {
+        if (!imageDetector.isEmpty() && !imageDetector.equals("none")) {
             imageModel = new ImageModel(mcontext, imageDetector);
             imageModelName = imageDetector;
         }
-        if (!textDetector.isEmpty()) {
+        if (!textDetector.isEmpty()  && !textDetector.equals("none")) {
             textModel = new TextModel(mcontext, textDetector);
             textModelName = textDetector;
 
