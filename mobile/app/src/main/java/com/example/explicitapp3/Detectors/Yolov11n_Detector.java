@@ -44,8 +44,6 @@ import java.util.PriorityQueue;
 import org.tensorflow.lite.gpu.CompatibilityList;
 import org.tensorflow.lite.gpu.GpuDelegate;
 
-// The total time complexity of this class is:
-//
 public class Yolov11n_Detector {
     Context context;
     public final String TAG = "YoloV11nDetector";
@@ -88,20 +86,7 @@ public class Yolov11n_Detector {
             Log.w(TAG, "available processors: " + Runtime.getRuntime().availableProcessors());
             options.setNumThreads(Runtime.getRuntime().availableProcessors());
         }
-
         interpreter = new Interpreter(model, options);
-
-        // POPULATE LABELS LIST
-//        labels = new ArrayList<>();
-//        try (InputStream inputStream = context.getAssets().open(LABELS_PATH)) {
-//            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-//            String line = bufferedReader.readLine();
-//            while (line != null && !line.isEmpty()) {
-//                labels.add(line);
-//                line = bufferedReader.readLine();
-//            }
-//            bufferedReader.close();
-//        }
         labels = FileUtil.loadLabels(context, LABELS_PATH);
         Log.i(TAG, "Success reading label: " + LABELS_PATH);
 
@@ -128,19 +113,6 @@ public class Yolov11n_Detector {
         Log.w(TAG, "tensorHeight: " + tensorHeight);
 
         tensorImage = new TensorImage(INPUT_IMAGE_TYPE);
-        //        for yolov5nu new:
-//        Numchannel: 84
-//        Numelements: 8400
-
-//        for yolov5s old:
-//        Numchannel: 6300
-//        Numelements: 85
-//        output = TensorBuffer.createFixedSize(
-//                new int[]{1, numChannel, numElements},
-//                OUTPUT_IMAGE_TYPE
-//        );
-
-        //s
         output = TensorBuffer.createFixedSize(
                 new int[]{1, numElements, numChannel},
                 OUTPUT_IMAGE_TYPE
@@ -180,7 +152,7 @@ public class Yolov11n_Detector {
         Object outputb = output.getBuffer();
         interpreter.run(input, outputb);
         Log.i(TAG, "interpreter.run() (oneline of code): " + (System.currentTimeMillis() - now));
-
+        Log.i(TAG, "detect: floatarrat: " + output.getFloatArray().length);
         List<DetectionResult> detectionResultList = getBoundsList(bitmap, output.getFloatArray());
         return new ClassifyResults(null, detectionResultList);
     }
@@ -190,7 +162,7 @@ public class Yolov11n_Detector {
         long now = System.currentTimeMillis();
 
         List<DetectionResult> results = new ArrayList<>();
-
+        Log.i(TAG, "numelements: " + numElements + " num channel" + numChannel);
 //        for yolov5nu:
         int numBoxes = numElements;   // 8400
         int numChannels = numChannel; // 6 (nsfw, safe, then 4 bounding box)
@@ -200,8 +172,8 @@ public class Yolov11n_Detector {
 
             float cx = predictions[0 * numBoxes + i];
             float cy = predictions[1 * numBoxes + i];
-            float w  = predictions[2 * numBoxes + i];
-            float h  = predictions[3 * numBoxes + i];
+            float w = predictions[2 * numBoxes + i];
+            float h = predictions[3 * numBoxes + i];
 
             int bestClass = -1;
             float bestScore = 0f;
@@ -220,7 +192,7 @@ public class Yolov11n_Detector {
             float y1 = cy - h / 2f;
             float x2 = cx + w / 2f;
             float y2 = cy + h / 2f;
-            Log.i(TAG, "getBoundsList: best class is: "+bestClass + " " +labels.get(bestClass));
+            Log.i(TAG, "getBoundsList: best class is: " + bestClass + " " + labels.get(bestClass));
 
             results.add(new DetectionResult(
                     bestClass,

@@ -72,9 +72,9 @@ public class Mobilenet_ssd_Detector2 {
         CompatibilityList compatibilityList = new CompatibilityList();
         if (compatibilityList.isDelegateSupportedOnThisDevice()) {
             Log.w(TAG, "GPU SUPPORTED");
-            GpuDelegate.Options delegateOptions = compatibilityList.getBestOptionsForThisDevice();
-            GpuDelegate gpuDelegate = new GpuDelegate(delegateOptions);
-            options.addDelegate(gpuDelegate);
+//            GpuDelegate.Options delegateOptions = compatibilityList.getBestOptionsForThisDevice();
+//            GpuDelegate gpuDelegate = new GpuDelegate(delegateOptions);
+//            options.addDelegate(gpuDelegate);
         } else {
             //        options.setNumThreads(4);
             Log.w(TAG, "GPU NOT SUPPORTED");

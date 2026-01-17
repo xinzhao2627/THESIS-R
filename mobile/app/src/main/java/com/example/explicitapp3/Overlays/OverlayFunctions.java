@@ -157,28 +157,28 @@ public class OverlayFunctions {
                 boundsRes[0],
                 boundsRes[1],
                 PixelFormat.RGBA_8888,
-                60
+                4
         );
 
         imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
             @Override
             public void onImageAvailable(ImageReader reader) {
 
-//                Image image = reader.acquireLatestImage();
-                Image image = reader.acquireNextImage();
+                Image image = reader.acquireLatestImage();
+//                Image image = reader.acquireNextImage();
                 if (image != null) {
 
 //                    inferenceExecutor.execute(() -> {
-                        long now = System.currentTimeMillis();
+                    long now = System.currentTimeMillis();
 
-                        Bitmap bitmap = imageToBitmap(image);
-                        Log.i(TAG, "processtime: bitmap: " + (System.currentTimeMillis() - now) + "ms");
+                    Bitmap bitmap = imageToBitmap(image);
+//                    Log.i(TAG, "processtime: bitmap: " + (System.currentTimeMillis() - now) + "ms");
 
-                        image.close();
+                    image.close();
 
-                        processImage(bitmap);
+                    processImage(bitmap);
 
-                        Log.i(TAG, "processtime: " + (System.currentTimeMillis() - now) + "ms,  model: " + imageModelName);
+                    Log.i(TAG, "processtime: " + (System.currentTimeMillis() - now) + "ms,  model: " + imageModelName);
 
 //                    });
 
@@ -189,6 +189,7 @@ public class OverlayFunctions {
         surface = imageReader.getSurface();
         initRecorder();
     }
+
     static final float SCROLL_EPS = 1f;
     private Bitmap previousScrollFrame = null;
 
@@ -206,7 +207,7 @@ public class OverlayFunctions {
 //        // now update the previous
 //        previousScrollFrame = bitmap.copy(Bitmap.Config.ARGB_8888, false);
 
-        Log.i(TAG, "time: \n");
+//        Log.i(TAG, "time: \n");
         long now = System.currentTimeMillis();
         List<DetectionResult> dt = new ArrayList<>();
         if (imageModel != null) {
@@ -226,6 +227,7 @@ public class OverlayFunctions {
         bitmap.recycle();
 //        Log.i(TAG, "processImage time: "+ (System.currentTimeMillis() - now));
     }
+
     private float estimateScrollDelta(Bitmap prev, Bitmap curr) {
         long now = System.currentTimeMillis();
         int w = prev.getWidth();
@@ -262,10 +264,11 @@ public class OverlayFunctions {
                 bestShift = shift;
             }
         }
-        Log.i(TAG, "scrolling time: "+ (System.currentTimeMillis() - now));
+        Log.i(TAG, "scrolling time: " + (System.currentTimeMillis() - now));
 
         return bestShift;
     }
+
     private boolean isScrolling(Bitmap prev, Bitmap curr) {
         long now = System.currentTimeMillis();
 
@@ -284,18 +287,18 @@ public class OverlayFunctions {
         for (int i = 0; i < w; i += 8) {
             diff += Math.abs(((a[i] >> 16) & 0xFF) - ((b[i] >> 16) & 0xFF));
         }
-        Log.i(TAG, "scrolling time: "+ (System.currentTimeMillis() - now) + " val: " + diff);
+        Log.i(TAG, "scrolling time: " + (System.currentTimeMillis() - now) + " val: " + diff);
 
         return diff > 10000;
     }
+
     private void handleUI(List<DetectionResult> dt) {
         if (dynamicView != null) {
-//          only output 4 boxes for now
-
             dynamicView.updateDetections(dt);
         }
 
     }
+
     public void setupDynamicOverlay() {
         if (dynamicView == null) {
             dynamicView = new DynamicView(mcontext, wm, imageModelName, textModelName);
@@ -303,8 +306,7 @@ public class OverlayFunctions {
     }
 
 
-
-// PixelFormat.RGBA_8888 image to bitmap
+    // PixelFormat.RGBA_8888 image to bitmap
     public Bitmap imageToBitmap(Image image) {
         Image.Plane[] planes = image.getPlanes();
         ByteBuffer buffer = planes[0].getBuffer();
@@ -335,6 +337,7 @@ public class OverlayFunctions {
 //        }
 //        return bitmap;
     }
+
     public static void saveBitmapToGallery(
             Context context,
             Bitmap bitmap,
@@ -359,6 +362,7 @@ public class OverlayFunctions {
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
         }
     }
+
     /**
      * Performs cleanup of all resources used by OverlayFunctions and OverlayService.
      * This method should be called when the service is stopping to prevent memory leaks.
@@ -463,7 +467,7 @@ public class OverlayFunctions {
             imageModel = new ImageModel(mcontext, imageDetector);
             imageModelName = imageDetector;
         }
-        if (!textDetector.isEmpty()  && !textDetector.equals("none")) {
+        if (!textDetector.isEmpty() && !textDetector.equals("none")) {
             textModel = new TextModel(mcontext, textDetector);
             textModelName = textDetector;
 

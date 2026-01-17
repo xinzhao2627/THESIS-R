@@ -63,19 +63,6 @@ dependencies {
     debugImplementation(libs.ui.tooling)
     debugImplementation(libs.ui.test.manifest)
 
-
-//    runtimeOnly("com.google.ai.edge.litert:litert:1.4.0")
-//    runtimeOnly("com.google.ai.edge.litert:litert-support:1.4.0")
-//    implementation("org.tensorflow:tensorflow-lite-task-text:0.4.4")
-//    implementation("com.google.ai.edge.litert:litert-metadata:1.4.0")
-//    implementation("com.google.ai.edge.litert:litert-gpu:1.4.0")
-//    implementation("com.google.ai.edge.litert:litert-gpu-api:1.4.0")
-//    runtimeOnly("org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.4")
-
-//    implementation("org.tensorflow:tensorflow-lite-metadata:0.4.4")
-//    implementation(libs.tensorflow.lite)
-//    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
-
     implementation("org.tensorflow:tensorflow-lite:2.16.1")
     implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
     implementation("org.tensorflow:tensorflow-lite-metadata:0.4.4")
@@ -86,16 +73,5 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite-gpu:2.16.1")
     implementation("org.tensorflow:tensorflow-lite-select-tf-ops:2.16.1")
     implementation ("eu.bolt:screenshotty:1.0.4")
-
-    // ui
-//    implementation ("androidx.compose.material3:material3:1.3.2")
-//    implementation ("androidx.compose.material3:material3-window-size-class:1.3.2")
-//    implementation ("androidx.compose.material3:material3-adaptive-navigation-suite:1.5.0-alpha04")
-    implementation ("com.google.android.flexbox:flexbox:3.0.0")
-
-    implementation("ai.djl:api:0.34.0")
-    implementation("ai.djl.huggingface:tokenizers:0.34.0")
-    implementation("ai.djl.tensorflow:tensorflow-engine:0.34.0")
-//    runtimeOnly("ai.djl.tensorflow:tensorflow-native-auto:0.25.0")
 
 }

@@ -37,6 +37,7 @@ public class Roberta_tagalog_Detector {
             recognizer = new Recognizer(context);
             this.mcontext = context;
             ByteBuffer modelBuffer_base = TaskJniUtils.loadMappedFile(context, modelPath);
+//            ByteBuffer modelBuffer_base = null;
             Interpreter.Options options = new Interpreter.Options();
             CompatibilityList compatibilityList = new CompatibilityList();
 //            if (compatibilityList.isDelegateSupportedOnThisDevice()) {
@@ -72,15 +73,19 @@ public class Roberta_tagalog_Detector {
         List<TextResults> textResults = recognizer.textRecognition(bitmap);
         long startTime = System.currentTimeMillis();
         for (TextResults t : textResults) {
-            String text = t.textContent.toLowerCase().trim();
+            String text = t.textContent.replaceAll("[^a-z\\s]", "").replaceAll("\\s+", " ").trim();
+            text = text.toLowerCase().trim();
+            if (text.length() < 3) continue;
             Roberta_tagalog_tokenizer.TokenizedResult encoding = tokenizer.encode(text);
             long[] inputIds = encoding.inputIds;
             long[] attentionMask = encoding.attentionMask;
+            if (inputIds.length < 1) continue;
+
             debugInput(t.textContent, inputIds, attentionMask);
 //            ensureInputOrder(); // see below
             float[][] output = runInference(inputIds, attentionMask);
             float[] probabilities = softmax(output[0]);
-            for (float[] o : output) Log.i(TAG, "output[]: " + Arrays.toString(o));
+//            for (float[] o : output) Log.i(TAG, "output[]: " + Arrays.toString(o));
 
 //            Log.i(TAG, "output length: " + output.length);
 //            Log.i(TAG, "output array: " + Arrays.toString(output[0]));
@@ -94,15 +99,15 @@ public class Roberta_tagalog_Detector {
                     l = LABELS[i];
                 }
             }
-
-            Log.i(TAG, "label: "+l+"  max cfs: " + max_cfs);
+            if (l.equals("safe")) continue;
+            Log.i(TAG, "word: "+t.textContent+" label: " + l + "  max cfs: " + max_cfs);
             detectionResultList.add(new DetectionResult(
                     0,
                     max_cfs,
-                    t.left,
-                    t.top + 100f,
-                    t.right,
-                    t.bottom,
+                    t.left / bitmap.getWidth(),
+                    t.top / bitmap.getHeight(),
+                    t.right / bitmap.getWidth(),
+                    t.bottom / bitmap.getHeight(),
                     l,
                     1
             ));
@@ -128,8 +133,8 @@ public class Roberta_tagalog_Detector {
             mask[0][i] = (int) attentionMask[i];
         }
 
-        int[] inputShape0 = interpreter.getInputTensor(0).shape();
-        int[] inputShape1 = interpreter.getInputTensor(1).shape();
+//        int[] inputShape0 = interpreter.getInputTensor(0).shape();
+//        int[] inputShape1 = interpreter.getInputTensor(1).shape();
 
         // 1 batch size 2 labels (safe/nsfw)
         int[] outputShape = interpreter.getOutputTensor(0).shape();

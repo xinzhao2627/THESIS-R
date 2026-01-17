@@ -11,7 +11,7 @@ import com.example.explicitapp3.Types.ModelTypes;
 import com.example.explicitapp3.Types.TextResults;
 
 import org.tensorflow.lite.Interpreter;
-import org.tensorflow.lite.task.core.TaskJniUtils;
+//import org.tensorflow.lite.task.core.TaskJniUtils;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -39,7 +39,8 @@ public class LSTM_Detector {
             recognizer = new Recognizer(context);
 
             this.mcontext = context;
-            ByteBuffer modelBuffer_base = TaskJniUtils.loadMappedFile(context, modelPath);
+//            ByteBuffer modelBuffer_base = TaskJniUtils.loadMappedFile(context, modelPath);
+            ByteBuffer modelBuffer_base = null;
             Interpreter.Options options = new Interpreter.Options();
             Log.w(TAG, "GPU NOT SUPPORTED");
             Log.w(TAG, "available processors: " + Runtime.getRuntime().availableProcessors());
@@ -70,7 +71,9 @@ public class LSTM_Detector {
         List<DetectionResult> detectionResultList = new ArrayList<>();
         List<TextResults> textResults = recognizer.textRecognition(bitmap);
         for (TextResults t : textResults) {
-            String text = t.textContent.toLowerCase().trim();
+            String text = t.textContent.replaceAll("[^a-z\\s]", "").replaceAll("\\s+", " ").trim();
+            text = text.toLowerCase().trim();
+            if (text.length() < 3) continue;
             Log.i(TAG, "text t: " + text);
             LSTM_tokenizer.TokenizedResult encoding = tokenizer.encode(text);
             long[] inputIds = encoding.inputIds;
@@ -83,6 +86,8 @@ public class LSTM_Detector {
             Log.i(TAG, "cfs: " + max_cfs);
 
             String l = max_cfs > 0.5 ? LABELS[1] : LABELS[0];
+            if (l.equals("safe")) continue;
+
             Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
 //            Log.i(TAG, "label: " + l + "  max cfs: " + max_cfs);
 //            Log.i(TAG, "\n");

@@ -14,6 +14,7 @@ import com.example.explicitapp3.Types.TextResults;
 import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.gpu.CompatibilityList;
 import org.tensorflow.lite.task.core.TaskJniUtils;
+//import org.tensorflow.lite.task.core.TaskJniUtils;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -77,23 +78,22 @@ public class DistilBERT_tagalog_Detector {
     }
 
     public List<DetectionResult> detect(Bitmap bitmap) {
-        int bw = bitmap.getWidth();
-        int bh = bitmap.getHeight();
-
         List<DetectionResult> detectionResultList = new ArrayList<>();
         List<TextResults> textResults = recognizer.textRecognition(bitmap);
         long startTime = System.currentTimeMillis();
         for (TextResults t : textResults) {
-            String text = t.textContent.toLowerCase().trim();
+            String text = t.textContent.replaceAll("[^a-z\\s]", "").replaceAll("\\s+", " ").trim();
+            text = text.toLowerCase().trim();
+            if (text.length() < 3) continue;
             Distilbert_tagalog_tokenizer.TokenizedResult encoding = tokenizer.encode(text);
             long[] inputIds = encoding.inputIds;
             long[] attentionMask = encoding.attentionMask;
+            if (inputIds.length < 1) continue;
             debugInput(t.textContent, inputIds, attentionMask);
 //            ensureInputOrder(); // see below
             float[][] output = runInference(inputIds, attentionMask);
             float[] probabilities = softmaxConverter.softmax(output[0]);
-            for (float[] o : output) Log.i(TAG, "output[]: " + Arrays.toString(o));
-
+//            for (float[] o : output) Log.i(TAG, "output[]: " + Arrays.toString(o));
 //            Log.i(TAG, "output length: " + output.length);
 //            Log.i(TAG, "output array: " + Arrays.toString(output[0]));
             float max_cfs = -100f;
@@ -106,8 +106,9 @@ public class DistilBERT_tagalog_Detector {
                     l = LABELS[i];
                 }
             }
-            Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
-            Log.i(TAG, "label: " + l + "  max cfs: " + max_cfs);
+            if (l.equals("safe")) continue;
+//            Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
+            Log.i(TAG, "word: "+t.textContent+" label: " + l + "  max cfs: " + max_cfs);
             detectionResultList.add(new DetectionResult(
                     0,
                     max_cfs,

@@ -75,16 +75,16 @@ public class YoloV10Detector {
         ByteBuffer model = FileUtil.loadMappedFile(context, MODEL_PATH);
         Interpreter.Options options = new Interpreter.Options();
         CompatibilityList compatibilityList = new CompatibilityList();
-//        if (compatibilityList.isDelegateSupportedOnThisDevice()) {
-//            Log.w(TAG, "GPU SUPPORTED");
-//            GpuDelegate.Options delegateOptions = compatibilityList.getBestOptionsForThisDevice();
-//            gpuDelegate = new GpuDelegate(delegateOptions);
-//            options.addDelegate(gpuDelegate);
-//        } else {
+        if (compatibilityList.isDelegateSupportedOnThisDevice()) {
+            Log.w(TAG, "GPU SUPPORTED");
+            GpuDelegate.Options delegateOptions = compatibilityList.getBestOptionsForThisDevice();
+            gpuDelegate = new GpuDelegate(delegateOptions);
+            options.addDelegate(gpuDelegate);
+        } else {
             Log.w(TAG, "GPU NOT SUPPORTED");
             Log.w(TAG, "available processors: " + Runtime.getRuntime().availableProcessors());
             options.setNumThreads(Runtime.getRuntime().availableProcessors());
-//        }
+        }
 
 
         interpreter = new Interpreter(model, options);

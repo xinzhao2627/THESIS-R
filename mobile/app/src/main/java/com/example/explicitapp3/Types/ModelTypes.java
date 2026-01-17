@@ -4,11 +4,14 @@ public class ModelTypes {
     public static final String YOLO_V10_F16 = "yolov10_16";
     public static final String YOLO_V10_F16_MODEL = "yolov10n_float16.tflite";
 
-    public static final String YOLO_V10_F32= "yolov10_32";
-//    public static final String YOLO_V10_F32_MODEL = "yolov10n_float32V3.tflite";
+//    public static final String YOLO_V10_F32= "yolov10_32";
+    public static final String YOLO_V10_F32= "yolov26n";
+
+    //    public static final String YOLO_V10_F32_MODEL = "yolov10n_float32V3.tflite";
 //    public static final String YOLO_V10_F32_MODEL = "yolov10n_float32.tflite";
 //    public static final String YOLO_V10_F32_MODEL = "yolo_latest.tflite";
-    public static final String YOLO_V10_F32_MODEL = "f16.tflite";
+//    public static final String YOLO_V10_F32_MODEL = "f16.tflite";
+    public static final String YOLO_V10_F32_MODEL = "yolo26n_float16.tflite";
 
     public static final String YOLO_V11N = "yolov11n";
 //    for yolov11, change to either fp16s or fp16n or 12fp16n tflite
@@ -27,8 +30,10 @@ public static final String MOBILENET_SSD_MODEL = "mobilenet_ssd2.tflite";
     public static final String EFFICIENTDET_MODEL = "efficient.tflite";
 
     public static final String ROBERTA_TAGALOG = "roberta_tagalog";
-    public static final String ROBERTA_TAGALOG_MODEL = "roberta_tagalog_nsfw_model.tflite";
-    public static final String[] ROBERTA_TAGALOG_LABELARRAY = {"safe", "nsfw"};
+    public static final String ROBERTA_TAGALOG_MODEL = "roberta_tagalog/roberta_tagalog_nsfw_model.tflite";
+//    public static final String[] ROBERTA_TAGALOG_LABELARRAY = {"safe", "nsfw"};
+public static final String[] ROBERTA_TAGALOG_LABELARRAY = {"nsfw", "safe"};
+
     public static final int ROBERTA_TAGALOG_SEQ_LEN = 256;
     public static final String ROBERTA_TAGALOG_TOKENIZER = "roberta_tagalog/tokenizer.json";
 
@@ -37,7 +42,8 @@ public static final String MOBILENET_SSD_MODEL = "mobilenet_ssd2.tflite";
     public static final String DISTILBERT_TAGALOG_MODEL = "distilbert_tagalog/distilbert_tagalog_classification_model.tflite";
     public static final int DISTILBERT_TAGALOG_SEQ_LEN = 256;
     public static final String DISTILBERT_TAGALOG_TOKENIZER = "distilbert_tagalog/tokenizer.json";
-    public static final String[] DISTILBERT_TAGALOG_LABELARRAY = {"good", "neutral", "bad"};
+//    public static final String[] DISTILBERT_TAGALOG_LABELARRAY = {"good", "neutral", "bad"};
+    public static final String[] DISTILBERT_TAGALOG_LABELARRAY = {"nsfw", "safe"};
 
 
     public static final String LSTM = "lstm";

@@ -253,11 +253,11 @@ public class DynamicView {
         }
 
         // enlarge if modelType == 1
-//        if (dr.modelType == 1) {
+        if (dr.modelType == 1) {
             float extraH = (height * (MODEL1_SCALE - 1)) / 2;
             y -= extraH;
             height *= MODEL1_SCALE;
-//        }
+        }
 
         // relocate box
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
@@ -289,11 +289,11 @@ public class DynamicView {
         float y = dr.top * screenHeight;
 
         // make box taller if modelType == 1
-//        if (dr.modelType == 1) {
+        if (dr.modelType == 1) {
             float extraH = (height * (MODEL1_SCALE - 1)) / 2;
             y -= extraH;
             height *= MODEL1_SCALE;
-//        }
+        }
 
         params.x = (int) x;
         params.y = (int) y;
