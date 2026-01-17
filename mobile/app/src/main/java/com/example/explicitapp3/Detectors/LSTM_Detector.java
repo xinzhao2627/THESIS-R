@@ -11,6 +11,7 @@ import com.example.explicitapp3.Types.ModelTypes;
 import com.example.explicitapp3.Types.TextResults;
 
 import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.task.core.TaskJniUtils;
 //import org.tensorflow.lite.task.core.TaskJniUtils;
 
 import java.io.InputStream;
@@ -39,8 +40,8 @@ public class LSTM_Detector {
             recognizer = new Recognizer(context);
 
             this.mcontext = context;
-//            ByteBuffer modelBuffer_base = TaskJniUtils.loadMappedFile(context, modelPath);
-            ByteBuffer modelBuffer_base = null;
+            ByteBuffer modelBuffer_base = TaskJniUtils.loadMappedFile(context, modelPath);
+//            ByteBuffer modelBuffer_base = null;
             Interpreter.Options options = new Interpreter.Options();
             Log.w(TAG, "GPU NOT SUPPORTED");
             Log.w(TAG, "available processors: " + Runtime.getRuntime().availableProcessors());
@@ -64,6 +65,7 @@ public class LSTM_Detector {
     }
     public void initBuffers() {
         int[] outputShape = interpreter.getOutputTensor(0).shape();
+        Log.i(TAG, "initBuffers: shape: "+outputShape[0] + " and " + outputShape[1]);
         outputs = new float[outputShape[0]][outputShape[1]];
     }
 
@@ -74,8 +76,9 @@ public class LSTM_Detector {
             String text = t.textContent.replaceAll("[^a-z\\s]", "").replaceAll("\\s+", " ").trim();
             text = text.toLowerCase().trim();
             if (text.length() < 3) continue;
-            Log.i(TAG, "text t: " + text);
+
             LSTM_tokenizer.TokenizedResult encoding = tokenizer.encode(text);
+//            Log.i(TAG, "text heyys: " + text);
             long[] inputIds = encoding.inputIds;
             long[] attentionMask = encoding.attentionMask;
             // if theres no tokens found just continue
@@ -87,8 +90,9 @@ public class LSTM_Detector {
 
             String l = max_cfs > 0.5 ? LABELS[1] : LABELS[0];
             if (l.equals("safe")) continue;
+            Log.i(TAG, "word: "+t.textContent+" label: " + l + "  max cfs: " + max_cfs);
 
-            Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
+//            Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
 //            Log.i(TAG, "label: " + l + "  max cfs: " + max_cfs);
 //            Log.i(TAG, "\n");
             if (l.equals(LABELS[1])) {
@@ -111,9 +115,17 @@ public class LSTM_Detector {
     public float[][] runInference(long[] inputIds, long[] attentionMask) {
         long startTime = System.currentTimeMillis();
         int seqLen = inputIds.length;
+        int max = Integer.MIN_VALUE;
+        int min = Integer.MAX_VALUE;
+
+        for (long id : inputIds) {
+            max = Math.max(max, (int) id);
+            min = Math.min(min, (int) id);
+        }
+        Log.i(TAG, "token range: min=" + min + " max=" + max);
 
         float[][] newInput = new float[1][ModelTypes.LSTM_SEQ_LEN];
-
+        Log.i(TAG, "runInference: newinput: " +newInput.length + " seqlen: " + seqLen);
         for (int i = 0; i < ModelTypes.LSTM_SEQ_LEN; i++) {
             if (i < seqLen) {
                 newInput[0][i] = (float) inputIds[i];
@@ -121,8 +133,12 @@ public class LSTM_Detector {
                 newInput[0][i] = 0.0f;
             }
         }
-
+        for (int i = 0; i < 10; i++) {
+            Log.i(TAG, "token[" + i + "] = " + newInput[0][i]);
+        }
         interpreter.run(newInput, outputs);
+        Log.i(TAG, "runInference: newinpuut done: " +newInput.length);
+
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
 //        Log.i(TAG, "inference function took: " + duration + " ms");

@@ -63,8 +63,8 @@ public class LSTM_tokenizer {
 
         long[] inputIds = new long[maxLength];
         long[] attentionMask = new long[inputIds.length];
-//        Log.i(TAG, "vocab length: " + getVocabSize());
-//        Log.i(TAG, "token length: " + tokens.size());
+        Log.i(TAG, "vocab length: " + getVocabSize());
+        Log.i(TAG, "token length: " + tokens.size());
         int tokenSize=  Math.min(tokens.size(), maxLength);
         for (int i = 0; i < inputIds.length; i++) {
             if (i < tokenSize) {

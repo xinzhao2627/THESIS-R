@@ -48,7 +48,7 @@ public class TextModel {
     }
 
     public List<DetectionResult> detect(Bitmap bitmap) {
-        try {
+//        try {
             switch (selectedModel) {
                 case ModelTypes.ROBERTA_TAGALOG:
                     return robertaTagalogDetector.detect(bitmap);
@@ -65,10 +65,7 @@ public class TextModel {
                 default:
                     return new ArrayList<>();
             }
-        } catch (Exception e) {
-            Log.i(TAG, "error!: " + e.getMessage());
-            return new ArrayList<>();
-        }
+//        }
 
     }
 
