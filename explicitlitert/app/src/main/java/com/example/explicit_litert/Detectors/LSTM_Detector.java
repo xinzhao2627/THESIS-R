@@ -49,7 +49,7 @@ public class LSTM_Detector {
             Log.w(TAG, "GPU NOT SUPPORTED");
             Log.w(TAG, "available processors: " + Runtime.getRuntime().availableProcessors());
             options.setNumThreads(Runtime.getRuntime().availableProcessors());
-            options.setUseXNNPACK(true);
+//            options.setUseXNNPACK(true);
 //            options.setUseNNAPI(true);
             interpreter = new Interpreter(modelBuffer, options);
 
@@ -138,8 +138,9 @@ public class LSTM_Detector {
             min = Math.min(min, (int) id);
         }
         Log.i(TAG, "token range: min=" + min + " max=" + max);
-
         float[][] newInput = new float[1][ModelTypes.LSTM_SEQ_LEN];
+
+
         Log.i(TAG, "runInference: newinput: " +newInput.length + " seqlen: " + seqLen);
         for (int i = 0; i < ModelTypes.LSTM_SEQ_LEN; i++) {
             if (i < seqLen) {
@@ -151,13 +152,19 @@ public class LSTM_Detector {
         for (int i = 0; i < 10; i++) {
             Log.i(TAG, "token[" + i + "] = " + newInput[0][i]);
         }
-        interpreter.run(newInput, outputs);
-        Log.i(TAG, "runInference: newinpuut done: " +newInput.length);
-
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
-//        Log.i(TAG, "inference function took: " + duration + " ms");
-        return outputs;
+        try {
+            interpreter.run(newInput, outputs);
+            Log.i(TAG, "runInference: newinpuut done: " +newInput.length);
+            long endTime = System.currentTimeMillis();
+            long duration = endTime - startTime;
+            //        Log.i(TAG, "inference function took: " + duration + " ms");
+            return outputs;
+        } catch(Exception e) {
+            Log.i(TAG, "runInference exception!: " + e.getMessage());
+            float[][] res = new float[1][1];
+            res[0][0] = 0;
+            return res;
+        }
     }
 
     public void cleanup() {
