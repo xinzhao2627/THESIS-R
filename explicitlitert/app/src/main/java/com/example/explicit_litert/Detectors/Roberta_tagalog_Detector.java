@@ -113,8 +113,7 @@ public class Roberta_tagalog_Detector {
                     l = LABELS[i];
                 }
             }
-            if (l.equals("safe")) continue;
-            if (max_cfs > 0.8){
+            if (l.equals("nsfw") && max_cfs > 0.5){
                 detectionResultList.add(new DetectionResult(
                         0,
                         max_cfs,
@@ -142,6 +141,7 @@ public class Roberta_tagalog_Detector {
         int seqLen = inputIds.length;
 //        Log.i(TAG, "Input IDs: " + Arrays.toString(inputIds));
 //        Log.i(TAG, "Attention Mask: " + Arrays.toString(attentionMask));
+        Log.i(TAG, "seqlen: " + seqLen);
         int[][] ids = new int[batchSize][seqLen];
         int[][] mask = new int[batchSize][seqLen];
 

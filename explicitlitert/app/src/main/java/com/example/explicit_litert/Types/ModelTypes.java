@@ -28,29 +28,58 @@ public static final String MOBILENET_SSD_MODEL = "mobilenet_ssd2.tflite";
 
     public static final String ROBERTA_TAGALOG = "roberta_tagalog";
     public static final String ROBERTA_TAGALOG_MODEL = "roberta_tagalog/roberta_tagalog_nsfw_model.tflite";
-    public static final String[] ROBERTA_TAGALOG_LABELARRAY = {"nsfw", "safe"};
+    public static final String[] ROBERTA_TAGALOG_LABELARRAY = {"safe", "nsfw"};
     public static final int ROBERTA_TAGALOG_SEQ_LEN = 256;
     public static final String ROBERTA_TAGALOG_TOKENIZER = "roberta_tagalog/tokenizer.json";
 
+//    public static final String ROBERTA_TAGALOG = "minilm";
+//    public static final String ROBERTA_TAGALOG_MODEL = "minilm/model.tflite";
+//    public static final String[] ROBERTA_TAGALOG_LABELARRAY = {"safe", "nsfw"};
+//    public static final int ROBERTA_TAGALOG_SEQ_LEN = 128;
+//    public static final String ROBERTA_TAGALOG_TOKENIZER = "minilm/tokenizer.json";
+
+    public static final String MINILM = "minilm";
+    public static final String MINILM_MODEL = "minilm/model.tflite";
+    public static final String[] MINILM_LABELARRAY = {"safe", "nsfw"};
+    public static final int MINILM_SEQ_LEN = 128;
+    public static final String MINILM_TOKENIZER = "minilm/tokenizer.json";
 
     public static final String DISTILBERT_TAGALOG = "distilbert_tagalog";
     public static final String DISTILBERT_TAGALOG_MODEL = "distilbert_tagalog/distilbert_tagalog_classification_model.tflite";
     public static final int DISTILBERT_TAGALOG_SEQ_LEN = 256;
     public static final String DISTILBERT_TAGALOG_TOKENIZER = "distilbert_tagalog/tokenizer.json";
     public static final String[] DISTILBERT_TAGALOG_LABELARRAY = {"nsfw", "safe"};
+//    public static final String DISTILBERT_TAGALOG = "tinybert";
+//    public static final String DISTILBERT_TAGALOG_MODEL = "tinybert/tinybert_nsfw.tflite";
+//    public static final int DISTILBERT_TAGALOG_SEQ_LEN = 128;
+//    public static final String DISTILBERT_TAGALOG_TOKENIZER = "tinybert/tokenizer.json";
+//    public static final String[] DISTILBERT_TAGALOG_LABELARRAY = {"safe", "nsfw"};
+
+    public static final String TINYBERT = "tinybert";
+    public static final String TINYBERT_MODEL = "tinybert/tinybert_nsfw.tflite";
+    public static final int TINYBERT_SEQ_LEN = 128;
+    public static final String TINYBERT_TOKENIZER = "tinybert/tokenizer.json";
+    public static final String[] TINYBERT_LABELARRAY = {"safe", "nsfw"};
+
+    public static final String MOBILEBERT = "mobilebert";
+    public static final String MOBILEBERT_MODEL = "mobilebert/mobilebert_nsfw.tflite";
+    public static final int MOBILEBERT_SEQ_LEN = 128;
+    public static final String MOBILEBERT_TOKENIZER = "mobilebert/vocab.txt";
+    public static final String[] MOBILEBERT_LABELARRAY = {"safe", "nsfw"};
 
 
-//    public static final String LSTM = "lstm";
-//    public static final String LSTM_MODEL = "lstm/lstm_model.tflite";
-//    public static final String LSTM_TOKENIZER = "lstm/tokenizer.json";
+    public static final String LSTM = "lstm";
+    public static final String LSTM_MODEL = "lstm/lstm_model.tflite";
+    public static final String LSTM_TOKENIZER = "lstm/tokenizer.json";
+    public static final String[] LSTM_LABELARRAY = {"nsfw", "safe"};
 
-    public static final String LSTM = "bilstm";
-    public static final String LSTM_MODEL = "bilstm/model.tflite";
-    public static final String LSTM_TOKENIZER = "bilstm/tokenizer.json";
-    //    public static final int LSTM_SEQ_LEN = 128;
+//    public static final String LSTM = "bilstm";
+//    public static final String LSTM_MODEL = "bilstm/model.tflite";
+//    public static final String LSTM_TOKENIZER = "bilstm/tokenizer.json";
+//    public static final String[] LSTM_LABELARRAY = {"safe", "nsfw"};
+
     public static final int LSTM_SEQ_LEN = 100;
-    public static final String[] LSTM_LABELARRAY = {"safe", "nsfw"};
-
+    //    public static final int LSTM_SEQ_LEN = 128;
     public static final String LogisticRegression = "logistic_regression";
     public static final String LogisticRegression_TOKENIZER = "logistic_regression/tokenizer.json";
     public static final int LogisticRegression_SEQ_LEN = 1000;

@@ -3,6 +3,8 @@ package com.example.explicit_litert.Parent;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.Log;
+
+import com.example.explicit_litert.Detectors.Mobilebert_Detector;
 import com.example.explicit_litert.Detectors.Roberta_tagalog_Detector;
 import com.example.explicit_litert.Detectors.DistilBERT_tagalog_Detector;
 import com.example.explicit_litert.Detectors.LSTM_Detector;
@@ -20,7 +22,8 @@ public class TextModel {
     Roberta_tagalog_Detector robertaTagalogDetector;
     DistilBERT_tagalog_Detector distilBERTDetector;
     LSTM_Detector lstmDetector;
-//    LogisticRegression_Detector logisticRegressionDetector;
+    Mobilebert_Detector mobilebertDetector;
+    //    LogisticRegression_Detector logisticRegressionDetector;
 //    SVM_Detector svmDetector;
 //    NaiveBayes_Detector naiveBayesDetector;
     Context mcontext;
@@ -38,6 +41,8 @@ public class TextModel {
             distilBERTDetector = new DistilBERT_tagalog_Detector(mcontext);
         } else if (name.equals(ModelTypes.LSTM)) {
             lstmDetector = new LSTM_Detector(mcontext);
+        } else if (name.equals(ModelTypes.MOBILEBERT)) {
+            mobilebertDetector = new Mobilebert_Detector(mcontext);
         }
 //            else if (name.equals(ModelTypes.LogisticRegression)) {
 //            logisticRegressionDetector = new LogisticRegression_Detector(mcontext);
@@ -50,28 +55,30 @@ public class TextModel {
 
     public List<DetectionResult> detect(Bitmap bitmap) {
 //        try {
-            switch (selectedModel) {
-                case ModelTypes.ROBERTA_TAGALOG:
+        switch (selectedModel) {
+            case ModelTypes.ROBERTA_TAGALOG:
 //                    return null;
-                    return robertaTagalogDetector.detect(bitmap);
-                case ModelTypes.DISTILBERT_TAGALOG:
+                return robertaTagalogDetector.detect(bitmap);
+            case ModelTypes.DISTILBERT_TAGALOG:
 //                    return null;
-                    return distilBERTDetector.detect(bitmap);
-                case ModelTypes.LSTM:
+                return distilBERTDetector.detect(bitmap);
+            case ModelTypes.MOBILEBERT:
+                return mobilebertDetector.detect(bitmap);
+            case ModelTypes.LSTM:
 //                    return null;
-                    return lstmDetector.detect(bitmap);
-                case ModelTypes.LogisticRegression:
-                    return null;
+                return lstmDetector.detect(bitmap);
+            case ModelTypes.LogisticRegression:
+                return null;
 //                    return logisticRegressionDetector.detect(bitmap);
-                case ModelTypes.SVM:
-                    return null;
+            case ModelTypes.SVM:
+                return null;
 //                    return svmDetector.detect(bitmap);
-                case ModelTypes.NaiveBayes:
-                    return null;
+            case ModelTypes.NaiveBayes:
+                return null;
 //                    return naiveBayesDetector.detect(bitmap);
-                default:
-                    return new ArrayList<>();
-            }
+            default:
+                return new ArrayList<>();
+        }
 //        }
 
     }
@@ -88,6 +95,10 @@ public class TextModel {
         if (lstmDetector != null) {
             lstmDetector.cleanup();
             lstmDetector = null;
+        }
+        if (mobilebertDetector != null) {
+            mobilebertDetector.cleanup();
+            mobilebertDetector = null;
         }
 //        if (svmDetector != null) {
 //            svmDetector.cleanup();

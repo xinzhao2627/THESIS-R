@@ -87,6 +87,7 @@ public class LSTM_Detector {
     public List<DetectionResult> detect(Bitmap bitmap) {
         List<DetectionResult> detectionResultList = new ArrayList<>();
         List<TextResults> textResults = recognizer.textRecognition(bitmap);
+        Log.i(TAG, "\nWORD");
         for (TextResults t : textResults) {
             String text = t.textContent.replaceAll("[^a-z\\s]", "").replaceAll("\\s+", " ").trim();
             text = text.toLowerCase().trim();
@@ -110,7 +111,7 @@ public class LSTM_Detector {
 //            Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
 //            Log.i(TAG, "label: " + l + "  max cfs: " + max_cfs);
 //            Log.i(TAG, "\n");
-            if (l.equals(LABELS[1])) {
+            if (l.equals("nsfw")) {
                 detectionResultList.add(new DetectionResult(
                         0,
                         max_cfs,

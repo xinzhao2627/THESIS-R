@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// IN THIS CODE YOU CAN RUN: TINYBERT/DISTILBERT JUST REPLACE THE MODEL AND TOKENIZER FILEPATH IN THE MODELTYPES.JAVA
 public class DistilBERT_tagalog_Detector {
     private static final String TAG = "DISTILBERT_TAGALOG";
     private Context mcontext;
@@ -99,9 +100,6 @@ public class DistilBERT_tagalog_Detector {
 //            ensureInputOrder(); // see below
             float[][] output = runInference(inputIds, attentionMask);
             float[] probabilities = softmaxConverter.softmax(output[0]);
-////            for (float[] o : output) Log.i(TAG, "output[]: " + Arrays.toString(o));
-//            Log.i(TAG, "output length: " + output.length);
-//            Log.i(TAG, "output array: " + Arrays.toString(output[0]));
             float max_cfs = -100f;
             String l = "";
 
@@ -112,6 +110,10 @@ public class DistilBERT_tagalog_Detector {
                     l = LABELS[i];
                 }
             }
+////            for (float[] o : output) Log.i(TAG, "output[]: " + Arrays.toString(o));
+//            Log.i(TAG, "output length: " + output.length);
+//            Log.i(TAG, "output array: " + Arrays.toString(output[0]));
+
             Log.i(TAG, "\nSTART");
 
             Log.i(TAG, "heence word: "+text + "  output[0][0]: "+output[0][0] + " | output[0][1]: "+ output[0][1] + " softmax[0]: " +probabilities[0] + " softmax[1]: "+ probabilities[1] + " label: " +l);
@@ -121,7 +123,7 @@ public class DistilBERT_tagalog_Detector {
 //            Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
 
 
-            if (max_cfs > 0.9) {
+            if (l.equals("nsfw") ) {
                 detectionResultList.add(new DetectionResult(
                         0,
                         max_cfs,

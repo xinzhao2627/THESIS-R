@@ -10,6 +10,7 @@ import org.json.JSONObject;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -138,6 +139,7 @@ public class Distilbert_tagalog_tokenizer {
             }
             tokenTypeIds[i] = 0;
         }
+        Log.i(TAG, "behold tokens: " + tokens);
 //        Log.i(TAG, "input id: " + Arrays.toString(inputIds));
         return new TokenizedResult(inputIds, attentionMask, tokenTypeIds);
     }

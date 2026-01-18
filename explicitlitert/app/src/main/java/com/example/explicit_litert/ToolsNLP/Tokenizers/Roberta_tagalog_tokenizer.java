@@ -22,7 +22,7 @@ public class Roberta_tagalog_tokenizer {
     private Map<String, Integer> vocab;
     private Map<Integer, String> idToToken;
     private Set<String> specialTokens;
-    private final int maxLength = ModelTypes.DISTILBERT_TAGALOG_SEQ_LEN;
+    private final int maxLength = ModelTypes.ROBERTA_TAGALOG_SEQ_LEN;
     private static final String TAG = "Roberta Tokenizer";
 
     public static class TokenizedResult {
