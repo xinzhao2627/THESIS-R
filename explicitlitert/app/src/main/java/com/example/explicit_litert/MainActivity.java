@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
     //    final String[] tmo = {"none", ModelTypes.LogisticRegression, ModelTypes.LSTM, ModelTypes.NaiveBayes, ModelTypes.SVM, ModelTypes.DISTILBERT_TAGALOG, ModelTypes.ROBERTA_TAGALOG};
 //    final String[] imo = {"none", ModelTypes.YOLO_V10_F32, ModelTypes.MOBILENET_SSD, ModelTypes.EFFICIENTDET, ModelTypes.YOLO_V11N, ModelTypes.YOLO_V5};
     final String[] tmo = {"none", ModelTypes.LSTM, ModelTypes.DISTILBERT_TAGALOG, ModelTypes.ROBERTA_TAGALOG, ModelTypes.MOBILEBERT};
-    final String[] imo = {"none", ModelTypes.YOLO_V10_F32, ModelTypes.YOLO_V11N, ModelTypes.YOLO_V5};
+    final String[] imo = {"none", ModelTypes.YOLO_V11N, ModelTypes.YOLO_V10_F16, ModelTypes.YOLO_V5};
 
 
     String imageDetector;

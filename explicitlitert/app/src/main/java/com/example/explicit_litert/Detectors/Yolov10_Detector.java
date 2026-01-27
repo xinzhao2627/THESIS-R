@@ -18,34 +18,27 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Yolov11n_Detector {
+public class Yolov10_Detector {
     Context context;
-    public static final String TAG = "YoloV11nDetector";
+    public static final String TAG = "YoloV10Detector";
     String MODEL_PATH;
     private static final float CONFIDENCE_THRESHOLD = 0.25f;
     List<String> labels;
     int numChannel = 6;
-
-//  int numElements = 12096;
-//  int img_size = 768;
-//    int numElements = 8400;
-//    int img_size = 640;
-    int numElements = 2100;
-    int img_size = 320;
+    int numElements = 300;
     List<TensorBuffer> inputBuffer;
     List<TensorBuffer> outputBuffer;
     CompiledModel model;
-
-    public Yolov11n_Detector(Context context, String chosen_image_model) throws IOException {
+    public Yolov10_Detector(Context context, String chosen_image_model) throws IOException {
         labels = new ArrayList<>();
         labels.add("nsfw");
         labels.add("safe");
         MODEL_PATH = chosen_image_model;
         String modelFilePath = copyAssetToFile(context, chosen_image_model);
 
-        Log.i(TAG, "Yolov11n_Detector: MODEL PATH: " + MODEL_PATH);
+        Log.i(TAG, "Yolov10_Detector: MODEL PATH: " + MODEL_PATH);
         try {
-            model = CompiledModel.create(modelFilePath, new CompiledModel.Options(Accelerator.GPU));
+            model = CompiledModel.create(modelFilePath, new CompiledModel.Options(Accelerator.CPU));
             inputBuffer = model.createInputBuffers();
 
             outputBuffer = model.createOutputBuffers();
@@ -54,7 +47,6 @@ public class Yolov11n_Detector {
             throw new RuntimeException(e);
         }
     }
-
     private String copyAssetToFile(Context context, String assetPath) throws IOException {
         File outFile = new File(context.getFilesDir(), assetPath);
         outFile.getParentFile().mkdirs();
@@ -99,11 +91,11 @@ public class Yolov11n_Detector {
         Log.i(TAG, "normalize(): " + (System.currentTimeMillis() - now));
         return outputFloatArray;
     }
-
     // run the interpreter
     public ClassifyResults detect(Bitmap bitmap) {
         Log.i(TAG, "\n Function time in milliseconds (YOLOV10) size widht: " + bitmap.getWidth() + " height: " + bitmap.getHeight());
-        Bitmap image = Bitmap.createScaledBitmap(bitmap, img_size, img_size, true);
+
+        Bitmap image = Bitmap.createScaledBitmap(bitmap, 640, 640, true);
         float[] inputFloatArray = normalize(image, 0f, 255f);
         try {
             long now = System.currentTimeMillis();
@@ -111,7 +103,6 @@ public class Yolov11n_Detector {
             model.run(inputBuffer, outputBuffer);
             float[] predictions = outputBuffer.get(0).readFloat();
             Log.i(TAG, "model.run: " + (System.currentTimeMillis() - now));
-
             return new ClassifyResults(null, getBoundsList(predictions));
 //            Log.i(TAG, "detect: a: "+ a.length);
         } catch (Exception e) {
@@ -125,62 +116,42 @@ public class Yolov11n_Detector {
     public List<DetectionResult> getBoundsList(float[] predictions) {
         long now = System.currentTimeMillis();
 
-        List<DetectionResult> results = new ArrayList<>();
-        int numBoxes = numElements;   // 8400
-        int numChannels = numChannel; // 6 (2 classes then 4 bounding box)
-        int numClasses = numChannels - 4;
+        final int elements = numElements;
+        final int channels = numChannel;
+        final float threshold = CONFIDENCE_THRESHOLD;
+        final List<String> lbls = labels;
 
-        for (int i = 0; i < numBoxes; i++) {
+        List<DetectionResult> results = new ArrayList<>(elements / 2);
 
-            float cx = predictions[0 * numBoxes + i];
-            float cy = predictions[1 * numBoxes + i];
-            float w = predictions[2 * numBoxes + i];
-            float h = predictions[3 * numBoxes + i];
+        for (int i = 0, offset = 0; i < elements; i++, offset += channels) {
+            float confidence = predictions[offset + 4];
+            if (confidence <= threshold) continue;
 
-            int bestClass = -1;
-            float bestScore = 0f;
-
-            for (int c = 0; c < numClasses; c++) {
-                float score = predictions[(4 + c) * numBoxes + i];
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestClass = c;
-                }
-            }
-
-            if (bestScore < CONFIDENCE_THRESHOLD) continue;
-//            Log.i(TAG, "getBoundsList: best class is: " + bestClass );
-
-            float x1 = cx - w / 2f;
-            float y1 = cy - h / 2f;
-            float x2 = cx + w / 2f;
-            float y2 = cy + h / 2f;
-            Log.i(TAG, "getBoundsList: inti is: " + bestClass);
-
-            String l = labels.get(bestClass);
-            if (l.equals("safe")) continue;
-            Log.i("YOLO_BOX",
-                    "i=" + i +
-                            " label=" + l +
-                            " score=" + bestScore +
-                            " x1=" + x1 +
-                            " y1=" + y1 +
-                            " x2=" + x2 +
-                            " y2=" + y2
+            int labelId = (int) predictions[offset + 5];
+            String label = lbls.get(labelId);
+            if ("safe".equals(label)) continue;
+            Log.i(TAG,
+                    "predictions: " +
+                            predictions[offset] + ", " +
+                            predictions[offset + 1] + ", " +
+                            predictions[offset + 2] + ", " +
+                            predictions[offset + 3]
             );
+
             results.add(new DetectionResult(
-                    bestClass,
-                    bestScore,
-                    x1, y1, x2, y2,
-                    l,
+                    labelId,
+                    confidence,
+                    predictions[offset],
+                    predictions[offset + 1],
+                    predictions[offset + 2],
+                    predictions[offset + 3],
+                    label,
                     0
             ));
         }
         Log.i(TAG, "getBoundsList(): " + (System.currentTimeMillis() - now));
         return results;
     }
-
-    //
 //    //    close the model, this runs one time
     public void cleanup() {
         try {

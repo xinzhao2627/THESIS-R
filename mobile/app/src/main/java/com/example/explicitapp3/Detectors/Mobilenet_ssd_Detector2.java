@@ -172,7 +172,7 @@ public class Mobilenet_ssd_Detector2 {
 
             String label = classId < labels.size() ? labels.get(classId) : "Unknown";
             Log.w(TAG,
-                    "RAW BOX i=" + i +
+                    "MOBILENET BOX i=" + i +
                             " ymin=" + ymin +
                             " xmin=" + xmin +
                             " ymax=" + ymax +

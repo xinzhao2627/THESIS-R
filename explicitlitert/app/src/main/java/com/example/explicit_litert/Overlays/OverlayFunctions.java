@@ -155,33 +155,36 @@ public class OverlayFunctions {
                 boundsRes[0],
                 boundsRes[1],
                 PixelFormat.RGBA_8888,
-                4
+                2
         );
 
         imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
             @Override
             public void onImageAvailable(ImageReader reader) {
 
-                Image image = reader.acquireLatestImage();
-//                Image image = reader.acquireNextImage();
-                if (image != null) {
-
-//                    inferenceExecutor.execute(() -> {
-                    long now = System.currentTimeMillis();
-
-                    Bitmap bitmap = imageToBitmap(image);
-//                    Log.i(TAG, "processtime: bitmap: " + (System.currentTimeMillis() - now) + "ms");
-
-                    image.close();
-
-                    processImage(bitmap);
-
-                    Log.i(TAG, "processtime: " + (System.currentTimeMillis() - now) + "ms,  model: " + imageModelName);
-
-//                    });
-
+                if (!isProcessing.compareAndSet(false, true)) {
+                    // frame skip
+                    Image skip = reader.acquireLatestImage();
+                    if (skip != null) skip.close();
+                    return;
                 }
+
+                Image image = reader.acquireLatestImage();
+                if (image == null) {
+                    isProcessing.set(false);
+                    return;
+                }
+
+                long now = System.currentTimeMillis();
+                Bitmap bitmap = imageToBitmap(image);
+                image.close();
+
+                inferenceExecutor.execute(() -> {
+                    processImage(bitmap);
+                    isProcessing.set(false);
+                });
             }
+
         }, handler);
 
         surface = imageReader.getSurface();
@@ -292,6 +295,7 @@ public class OverlayFunctions {
 
     private void handleUI(List<DetectionResult> dt) {
         if (dynamicView != null) {
+
             dynamicView.updateDetections(dt);
         }
 

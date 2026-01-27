@@ -18,32 +18,30 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Yolov11n_Detector {
+public class Yolov5_Detector {
     Context context;
-    public static final String TAG = "YoloV11nDetector";
+    public static final String TAG = "YoloV5Detector";
     String MODEL_PATH;
     private static final float CONFIDENCE_THRESHOLD = 0.25f;
     List<String> labels;
-    int numChannel = 6;
-
-//  int numElements = 12096;
-//  int img_size = 768;
-//    int numElements = 8400;
+    int numChannel = 7;
+//    int numElements = 25200;
 //    int img_size = 640;
-    int numElements = 2100;
+    int numElements = 6300;
     int img_size = 320;
+
     List<TensorBuffer> inputBuffer;
     List<TensorBuffer> outputBuffer;
     CompiledModel model;
 
-    public Yolov11n_Detector(Context context, String chosen_image_model) throws IOException {
+    public Yolov5_Detector(Context context, String chosen_image_model) throws IOException {
         labels = new ArrayList<>();
         labels.add("nsfw");
         labels.add("safe");
         MODEL_PATH = chosen_image_model;
         String modelFilePath = copyAssetToFile(context, chosen_image_model);
 
-        Log.i(TAG, "Yolov11n_Detector: MODEL PATH: " + MODEL_PATH);
+        Log.i(TAG, "Yolov5_Detector: MODEL PATH: " + MODEL_PATH);
         try {
             model = CompiledModel.create(modelFilePath, new CompiledModel.Options(Accelerator.GPU));
             inputBuffer = model.createInputBuffers();
@@ -126,29 +124,32 @@ public class Yolov11n_Detector {
         long now = System.currentTimeMillis();
 
         List<DetectionResult> results = new ArrayList<>();
-        int numBoxes = numElements;   // 8400
-        int numChannels = numChannel; // 6 (2 classes then 4 bounding box)
-        int numClasses = numChannels - 4;
+        int numBoxes = numElements;   // 25200
+        int numChannels = numChannel; // 7
+        int numClasses = numChannels - 5;
 
         for (int i = 0; i < numBoxes; i++) {
 
-            float cx = predictions[0 * numBoxes + i];
-            float cy = predictions[1 * numBoxes + i];
-            float w = predictions[2 * numBoxes + i];
-            float h = predictions[3 * numBoxes + i];
+            int offset = i * numChannels;
+
+            float cx = predictions[offset + 0];
+            float cy = predictions[offset + 1];
+            float w  = predictions[offset + 2];
+            float h  = predictions[offset + 3];
+            float objectness = predictions[offset + 4];
 
             int bestClass = -1;
             float bestScore = 0f;
 
             for (int c = 0; c < numClasses; c++) {
-                float score = predictions[(4 + c) * numBoxes + i];
+                float score = predictions[offset + 5 + c];
                 if (score > bestScore) {
                     bestScore = score;
                     bestClass = c;
                 }
             }
-
-            if (bestScore < CONFIDENCE_THRESHOLD) continue;
+            float confidence = bestScore * objectness;
+            if (confidence < CONFIDENCE_THRESHOLD) continue;
 //            Log.i(TAG, "getBoundsList: best class is: " + bestClass );
 
             float x1 = cx - w / 2f;
@@ -170,7 +171,7 @@ public class Yolov11n_Detector {
             );
             results.add(new DetectionResult(
                     bestClass,
-                    bestScore,
+                    confidence,
                     x1, y1, x2, y2,
                     l,
                     0

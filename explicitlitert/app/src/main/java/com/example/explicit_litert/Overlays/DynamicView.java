@@ -86,7 +86,7 @@ public class DynamicView {
 //        createColorSquare();
 
     }
-//    private void createColorSquare() {
+    //    private void createColorSquare() {
 //        colorSquare = new View(mcontext);
 //
 //        int sizePx = 40; // square size
@@ -146,6 +146,7 @@ public class DynamicView {
         long now = System.currentTimeMillis();
 
         // update tracking (existing + new + removed)
+        List<DetectionResult> tracked = updateTracking(newDetections, now);
 
         // create or update overlays for current tracked boxes
         for (TrackedBox tb : previousDetections) {
@@ -158,7 +159,6 @@ public class DynamicView {
                 updateOverlayView(tb);
             }
         }
-        List<DetectionResult> tracked = updateTracking(newDetections, now);
 
         // remove overlays for boxes that no longer exist
         overlayMap.entrySet().removeIf(entry -> {
@@ -332,7 +332,7 @@ public class DynamicView {
         Log.i("NMS", String.format("Filtered %d → %d boxes", detections.size(), kept.size()));
         return kept;
     }
-//    dt is the current list of detection results
+    //    dt is the current list of detection results
 //    now is just milliseconds tracker
     private List<DetectionResult> updateTracking(List<DetectionResult> dt, long now) {
         if (!dt.isEmpty()) {
@@ -371,7 +371,7 @@ public class DynamicView {
 //          if a detection result is new, add it in the previous detections
             Log.i("heyheyy", "updateTracking: current prevdec size: " + dt.size()+previousDetections.size());
             for (int i = 0; i < dt.size(); i++) {
-                if (!matched[i] && previousDetections.size() < 30) {
+                if (!matched[i]) {
 //                    previousDetections.add(new TrackedBox(dt.get(i), now));
 
                     //new
@@ -411,7 +411,7 @@ public class DynamicView {
         }
 
         List<DetectionResult> res = new ArrayList<>();
-        for (TrackedBox tb : previousDetections) res.add(tb.dr);
+//        for (TrackedBox tb : previousDetections) res.add(tb.dr);
         return res;
     }
     private boolean overlapsWithExisting(DetectionResult newBox) {
@@ -465,4 +465,3 @@ public class DynamicView {
 //        }
     }
 }
-

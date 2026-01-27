@@ -11,6 +11,7 @@ import org.json.JSONObject;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -167,38 +168,63 @@ public class Distilbert_tagalog_tokenizer {
         List<String> tokens = new ArrayList<>();
         int start = 0;
 
+//        while (start < word.length()) {
+//            String longestMatch = null;
+//            int longestEnd = start;
+//
+//            // Try all possible substrings starting from 'start'
+//            for (int end = word.length(); end > start; end--) {
+//                String candidate = word.substring(start, end);
+//
+//                // Add ## prefix if this isn't the start of the word
+//                if (start > 0) {
+//                    candidate = "##" + candidate;
+//                }
+//
+//                if (vocab.containsKey(candidate)) {
+//                    longestMatch = candidate;
+//                    longestEnd = end;
+//                    break;
+//                } else if (vocab.containsKey(candidate.toLowerCase())){
+//                    longestMatch = candidate;
+//                    longestEnd = end;
+//                    break;
+//                }
+//            }
+//
+//            if (longestMatch != null) {
+//                tokens.add(longestMatch);
+//                start = longestEnd;
+//            } else {
+//                // [UNK] if theres nothing
+//                tokens.add("[UNK]");
+//                start++;
+//            }
+//        }
+
         while (start < word.length()) {
             String longestMatch = null;
-            int longestEnd = start;
+            int longestEnd = -1;
 
-            // Try all possible substrings starting from 'start'
             for (int end = word.length(); end > start; end--) {
-                String candidate = word.substring(start, end);
-
-                // Add ## prefix if this isn't the start of the word
+                String sub = word.substring(start, end).toLowerCase();
                 if (start > 0) {
-                    candidate = "##" + candidate;
+                    sub = "##" + sub;
                 }
 
-                if (vocab.containsKey(candidate)) {
-                    longestMatch = candidate;
-                    longestEnd = end;
-                    break;
-                } else if (vocab.containsKey(candidate.toLowerCase())){
-                    longestMatch = candidate;
+                if (vocab.containsKey(sub)) {
+                    longestMatch = sub;
                     longestEnd = end;
                     break;
                 }
             }
 
-            if (longestMatch != null) {
-                tokens.add(longestMatch);
-                start = longestEnd;
-            } else {
-                // [UNK] if theres nothing
-                tokens.add("[UNK]");
-                start++;
+            if (longestMatch == null) {
+                return Collections.singletonList("[UNK]");
             }
+
+            tokens.add(longestMatch);
+            start = longestEnd;
         }
 
         return tokens;

@@ -162,6 +162,20 @@ public class OverlayService extends Service {
         }
     }
 
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        super.onTaskRemoved(rootIntent);
+        if (overlayFunctions != null) {
+            overlayFunctions.destroy();
+            overlayFunctions = null;
+        }
+
+        if (mediaProjection != null) {
+            mediaProjection.stop();
+            mediaProjection = null;
+        }
+    }
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {

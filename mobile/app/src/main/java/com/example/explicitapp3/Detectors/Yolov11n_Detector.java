@@ -164,7 +164,7 @@ public class Yolov11n_Detector {
         List<DetectionResult> results = new ArrayList<>();
         Log.i(TAG, "numelements: " + numElements + " num channel" + numChannel);
 //        for yolov5nu:
-        int numBoxes = numElements;   // 8400
+        int numBoxes = numElements;   // 8400 or 12096
         int numChannels = numChannel; // 6 (nsfw, safe, then 4 bounding box)
         int numClasses = numChannels - 4;
 

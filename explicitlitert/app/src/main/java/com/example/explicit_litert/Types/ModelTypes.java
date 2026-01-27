@@ -1,8 +1,8 @@
 package com.example.explicit_litert.Types;
 
 public class ModelTypes {
-    public static final String YOLO_V10_F16 = "yolov10_16";
-    public static final String YOLO_V10_F16_MODEL = "yolov10n_float16.tflite";
+    public static final String YOLO_V10_F16 = "yolov10n";
+    public static final String YOLO_V10_F16_MODEL = "best_float16.tflite";
 
     public static final String YOLO_V10_F32= "yolov10_32";
 //    public static final String YOLO_V10_F32_MODEL = "yolov10n_float32V3.tflite";
@@ -12,11 +12,11 @@ public class ModelTypes {
 
     public static final String YOLO_V11N = "yolov11n";
 //    for yolov11, change to either fp16s or fp16n or 12fp16n tflite
-    public static final String YOLO_V11N_MODEL = "fp16n.tflite";
+    public static final String YOLO_V11N_MODEL = "best_float16_320.tflite";
 
-    public static final String YOLO_V5 = "yolov5";
+    public static final String YOLO_V5 = "yolov5n";
 //    public static final String YOLO_V5_MODEL = "f16nu.tflite";
-    public static final String YOLO_V5_MODEL = "yolov5s_float16_nsfw.tflite";
+    public static final String YOLO_V5_MODEL = "best-fp16_320.tflite";
 
 
     public static final String MOBILENET_SSD = "mobilenet_ssd";
@@ -24,7 +24,7 @@ public class ModelTypes {
 public static final String MOBILENET_SSD_MODEL = "mobilenet_ssd2.tflite";
 
     public static final String EFFICIENTDET = "efficientdet";
-    public static final String EFFICIENTDET_MODEL = "efficient.tflite";
+    public static final String EFFICIENTDET_MODEL = "model.tflite";
 
     public static final String ROBERTA_TAGALOG = "roberta_tagalog";
     public static final String ROBERTA_TAGALOG_MODEL = "roberta_tagalog/roberta_tagalog_nsfw_model.tflite";
