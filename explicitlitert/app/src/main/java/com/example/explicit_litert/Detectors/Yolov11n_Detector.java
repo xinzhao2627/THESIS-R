@@ -28,8 +28,10 @@ public class Yolov11n_Detector {
 
 //  int numElements = 12096;
 //  int img_size = 768;
+
 //    int numElements = 8400;
 //    int img_size = 640;
+
     int numElements = 2100;
     int img_size = 320;
     List<TensorBuffer> inputBuffer;
@@ -43,7 +45,7 @@ public class Yolov11n_Detector {
         MODEL_PATH = chosen_image_model;
         String modelFilePath = copyAssetToFile(context, chosen_image_model);
 
-        Log.i(TAG, "Yolov11n_Detector: MODEL PATH: " + MODEL_PATH);
+        Log.i(TAG, "Yolov11n_Detector: MODEL PATH: " + MODEL_PATH + " filemodelpath: " + modelFilePath);
         try {
             model = CompiledModel.create(modelFilePath, new CompiledModel.Options(Accelerator.GPU));
             inputBuffer = model.createInputBuffers();
@@ -96,21 +98,36 @@ public class Yolov11n_Detector {
             outputFloatArray[outputBaseIndex + 1] = (g - mean) / stddev; // green
             outputFloatArray[outputBaseIndex + 2] = (b - mean) / stddev; // blue
         }
-        Log.i(TAG, "normalize(): " + (System.currentTimeMillis() - now));
+//        Log.i(TAG, "normalize(): " + (System.currentTimeMillis() - now));
         return outputFloatArray;
     }
 
     // run the interpreter
     public ClassifyResults detect(Bitmap bitmap) {
-        Log.i(TAG, "\n Function time in milliseconds (YOLOV10) size widht: " + bitmap.getWidth() + " height: " + bitmap.getHeight());
-        Bitmap image = Bitmap.createScaledBitmap(bitmap, img_size, img_size, true);
-        float[] inputFloatArray = normalize(image, 0f, 255f);
+//        Log.i(TAG, "\n Function time in milliseconds (YOLOV10) size widht: " + bitmap.getWidth() + " height: " + bitmap.getHeight());
+
         try {
+            Log.i("gpteam", "new yolov11or12_"+img_size);
+
             long now = System.currentTimeMillis();
+            Bitmap image = Bitmap.createScaledBitmap(bitmap, img_size, img_size, false);
+            Log.i("gpteam", "scale: " + (System.currentTimeMillis() - now));
+
+            now = System.currentTimeMillis();
+            float[] inputFloatArray = normalize(image, 0f, 255f);
+            Log.i("gpteam", "normalize: " + (System.currentTimeMillis() - now));
+
+            now = System.currentTimeMillis();
             inputBuffer.get(0).writeFloat(inputFloatArray);
+            Log.i("gpteam", "inputbuffer: " + (System.currentTimeMillis() - now));
+
+            now = System.currentTimeMillis();
             model.run(inputBuffer, outputBuffer);
+            Log.i("gpteam", "model.run: " + (System.currentTimeMillis() - now));
+
+            now = System.currentTimeMillis();
             float[] predictions = outputBuffer.get(0).readFloat();
-            Log.i(TAG, "model.run: " + (System.currentTimeMillis() - now));
+            Log.i("gpteam", "outputbuffer: " + (System.currentTimeMillis() - now));
 
             return new ClassifyResults(null, getBoundsList(predictions));
 //            Log.i(TAG, "detect: a: "+ a.length);
@@ -155,19 +172,19 @@ public class Yolov11n_Detector {
             float y1 = cy - h / 2f;
             float x2 = cx + w / 2f;
             float y2 = cy + h / 2f;
-            Log.i(TAG, "getBoundsList: inti is: " + bestClass);
+//            Log.i(TAG, "getBoundsList: inti is: " + bestClass);
 
             String l = labels.get(bestClass);
             if (l.equals("safe")) continue;
-            Log.i("YOLO_BOX",
-                    "i=" + i +
-                            " label=" + l +
-                            " score=" + bestScore +
-                            " x1=" + x1 +
-                            " y1=" + y1 +
-                            " x2=" + x2 +
-                            " y2=" + y2
-            );
+//            Log.i("YOLO_BOX",
+//                    "i=" + i +
+//                            " label=" + l +
+//                            " score=" + bestScore +
+//                            " x1=" + x1 +
+//                            " y1=" + y1 +
+//                            " x2=" + x2 +
+//                            " y2=" + y2
+//            );
             results.add(new DetectionResult(
                     bestClass,
                     bestScore,
@@ -176,7 +193,7 @@ public class Yolov11n_Detector {
                     0
             ));
         }
-        Log.i(TAG, "getBoundsList(): " + (System.currentTimeMillis() - now));
+//        Log.i(TAG, "getBoundsList(): " + (System.currentTimeMillis() - now));
         return results;
     }
 

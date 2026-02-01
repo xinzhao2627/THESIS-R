@@ -14,6 +14,7 @@ import com.example.explicit_litert.Types.ModelTypes;
 
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class ImageModel {
     private static final String TAG = "ImageModel";
@@ -46,17 +47,42 @@ public class ImageModel {
                     ModelTypes.YOLO_V10_F16 + "/" + ModelTypes.YOLO_V10_F16_MODEL
             );
         }
+
+//        FOR YOLOV5 VARIANTS
         if (name.equals(ModelTypes.YOLO_V5)){
             yolov5Detector = new Yolov5_Detector(
                     mcontext,
-                    ModelTypes.YOLO_V5 + "/" + ModelTypes.YOLO_V5_MODEL
+                    ModelTypes.YOLO_V5 + "/" + ModelTypes.YOLO_V5_MODEL,
+                    ModelTypes.YOLO_V5
             );
         }
+        if (name.equals(ModelTypes.YOLO_V5N_320)){
+            yolov5Detector = new Yolov5_Detector(
+                    mcontext,
+                    ModelTypes.YOLO_V5 + "/" + ModelTypes.YOLO_V5N_320_MODEL,
+                    ModelTypes.YOLO_V5N_320
+            );
+        }
+        if (name.equals(ModelTypes.YOLO_V5N_640)){
+            yolov5Detector = new Yolov5_Detector(
+                    mcontext,
+                    ModelTypes.YOLO_V5 + "/" + ModelTypes.YOLO_V5N_640_MODEL,
+                    ModelTypes.YOLO_V5N_640
+            );
+        }
+        if (name.equals(ModelTypes.YOLO_V5S_320)){
+            yolov5Detector = new Yolov5_Detector(
+                    mcontext,
+                    "yolov5s" + "/" + ModelTypes.YOLO_V5S_320_MODEL,
+                    ModelTypes.YOLO_V5S_320
+            );
+        }
+
     }
 
     public ClassifyResults detect(Bitmap bitmap) {
         if (selectedModel.equals(ModelTypes.YOLO_V11N)) {
-            Log.i(TAG, "detect: v11 running..");
+//            Log.i(TAG, "detect: v11 running..");
             return yolov11nDetector.detect(bitmap);
         }
         if (selectedModel.equals(ModelTypes.EFFICIENTDET)) {
@@ -65,10 +91,14 @@ public class ImageModel {
         if (selectedModel.equals(ModelTypes.YOLO_V10_F16)){
             return yolov10Detector.detect(bitmap);
         }
-        if (selectedModel.equals(ModelTypes.YOLO_V5)){
+        if (selectedModel.equals(ModelTypes.YOLO_V5)
+                || selectedModel.equals(ModelTypes.YOLO_V5N_320)
+                || selectedModel.equals(ModelTypes.YOLO_V5N_640)
+                || selectedModel.equals(ModelTypes.YOLO_V5S_320)
+        ){
             return yolov5Detector.detect(bitmap);
         }
-        return null;
+        return new ClassifyResults(null, new ArrayList<>());
     }
 
     public void cleanup() {

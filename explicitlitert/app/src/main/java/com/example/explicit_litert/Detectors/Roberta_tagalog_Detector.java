@@ -35,10 +35,10 @@ public class Roberta_tagalog_Detector {
     public static final String[] LABELS = ModelTypes.ROBERTA_TAGALOG_LABELARRAY;
     public static final String tokenizerPath = ModelTypes.ROBERTA_TAGALOG_TOKENIZER;
     public static final String modelPath = ModelTypes.ROBERTA_TAGALOG_MODEL;
-    public Roberta_tagalog_Detector(Context context) {
+    public Roberta_tagalog_Detector(Context context, int etn) {
         mcontext = context;
         try {
-            recognizer = new Recognizer(context);
+            recognizer = new Recognizer(context, etn);
             this.mcontext = context;
             ByteBuffer modelBuffer_base = loadModelFile(context, modelPath);
 //            ByteBuffer modelBuffer_base = null;
@@ -84,21 +84,32 @@ public class Roberta_tagalog_Detector {
     public List<DetectionResult> detect(Bitmap bitmap) {
         List<DetectionResult> detectionResultList = new ArrayList<>();
 
+        long nnn = System.currentTimeMillis();
         List<TextResults> textResults = recognizer.textRecognition(bitmap);
+        Log.i("recognizering", "recognizer_ms dostroberta: "+(System.currentTimeMillis()-nnn));
         long startTime = System.currentTimeMillis();
         for (TextResults t : textResults) {
-            String text = t.textContent.replaceAll("[^a-z\\s]", "").replaceAll("\\s+", " ").trim();
+            String text = t.textContent.replaceAll("[^a-z\\s]", " ").replaceAll("\\s+", " ").trim();
             text = text.toLowerCase().trim();
             if (text.length() < 3) continue;
+            Log.i("gpteam", "new robertatagalogordostroberta");
+
+            long now = System.currentTimeMillis();
             Roberta_tagalog_tokenizer.TokenizedResult encoding = tokenizer.encode(text);
+            Log.i("gpteam", "encode "+(System.currentTimeMillis()-now));
+
             long[] inputIds = encoding.inputIds;
             long[] attentionMask = encoding.attentionMask;
             if (inputIds.length < 1) continue;
 
-            debugInput(t.textContent, inputIds, attentionMask);
+//            debugInput(t.textContent, inputIds, attentionMask);
 //            ensureInputOrder(); // see below
-            float[][] output = runInference(inputIds, attentionMask);
+            float[][] output = runInference(attentionMask, inputIds);
+
+            now = System.currentTimeMillis();
             float[] probabilities = softmax(output[0]);
+            Log.i("gpteam", "softmax "+(System.currentTimeMillis()-now));
+
 //            for (float[] o : output) Log.i(TAG, "output[]: " + Arrays.toString(o));
 
 //            Log.i(TAG, "output length: " + output.length);
@@ -113,7 +124,8 @@ public class Roberta_tagalog_Detector {
                     l = LABELS[i];
                 }
             }
-            if (l.equals("nsfw") && max_cfs > 0.5){
+//             && max_cfs > 0.5
+            if (l.equals("nsfw")){
                 detectionResultList.add(new DetectionResult(
                         0,
                         max_cfs,
@@ -125,47 +137,55 @@ public class Roberta_tagalog_Detector {
                         1
                 ));
             }
-            Log.i(TAG, "word: "+t.textContent+" label: " + l + "  max cfs: " + max_cfs);
+//            Log.i(TAG, "word: "+t.textContent+" label: " + l + "  max cfs: " + max_cfs);
 
         }
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
 //        Log.i(TAG, "this for loop took: " + duration + " ms");
         return detectionResultList;
     }
 
-    public float[][] runInference(long[] inputIds, long[] attentionMask) {
-        long startTime = System.currentTimeMillis();
+    public float[][] runInference(long[] attentionMask, long[] inputIds) {
+        if (interpreter == null) return new float[][]{};
+        try {
+            long now = System.currentTimeMillis();
 
-        int batchSize = 1;
-        int seqLen = inputIds.length;
+            int batchSize = 1;
+            int seqLen = inputIds.length;
 //        Log.i(TAG, "Input IDs: " + Arrays.toString(inputIds));
 //        Log.i(TAG, "Attention Mask: " + Arrays.toString(attentionMask));
-        Log.i(TAG, "seqlen: " + seqLen);
-        int[][] ids = new int[batchSize][seqLen];
-        int[][] mask = new int[batchSize][seqLen];
+            int[][] ids = new int[batchSize][seqLen];
+            int[][] mask = new int[batchSize][seqLen];
 
-        for (int i = 0; i < seqLen; i++) {
-            ids[0][i] = (int) inputIds[i];
-            mask[0][i] = (int) attentionMask[i];
-        }
+            for (int i = 0; i < seqLen; i++) {
+                ids[0][i] = (int) inputIds[i];
+                mask[0][i] = (int) attentionMask[i];
+            }
 
 //        int[] inputShape0 = interpreter.getInputTensor(0).shape();
 //        int[] inputShape1 = interpreter.getInputTensor(1).shape();
+            // 1 batch size 2 labels (safe/nsfw)
+            Object[] inputArray = new Object[]{mask, ids};
+            Log.i("gpteam", "inputbuffer "+(System.currentTimeMillis()-now));
 
-        // 1 batch size 2 labels (safe/nsfw)
-        int[] outputShape = interpreter.getOutputTensor(0).shape();
-        float[][] outputs = new float[outputShape[0]][outputShape[1]];
+            now = System.currentTimeMillis();
+            int[] outputShape = interpreter.getOutputTensor(0).shape();
+            float[][] outputs = new float[outputShape[0]][outputShape[1]];
+            Map<Integer, Object> outputsMap = new HashMap<>();
+            outputsMap.put(0, outputs);
+            Log.i("gpteam", "outputbuffer "+(System.currentTimeMillis()-now));
 
-        Object[] inputArray = new Object[]{mask, ids};
-        Map<Integer, Object> outputsMap = new HashMap<>();
-        outputsMap.put(0, outputs);
+            now = System.currentTimeMillis();
+            interpreter.runForMultipleInputsOutputs(inputArray, outputsMap);
+            Log.i("gpteam", "model.run "+(System.currentTimeMillis()-now));
 
-        interpreter.runForMultipleInputsOutputs(inputArray, outputsMap);
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
 //        Log.i(TAG, "inference function took: " + duration + " ms");
-        return outputs;
+            return outputs;
+        } catch (Exception e) {
+            Log.i(TAG, "runInference error: " +e.getMessage());
+            return new float[][]{};
+        }
+
+
     }
 
     public void cleanup() {

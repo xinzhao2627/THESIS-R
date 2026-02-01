@@ -161,7 +161,7 @@ public class OverlayFunctions {
         imageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
             @Override
             public void onImageAvailable(ImageReader reader) {
-
+                long now = System.currentTimeMillis();
                 if (!isProcessing.compareAndSet(false, true)) {
                     // frame skip
                     Image skip = reader.acquireLatestImage();
@@ -175,7 +175,7 @@ public class OverlayFunctions {
                     return;
                 }
 
-                long now = System.currentTimeMillis();
+
                 Bitmap bitmap = imageToBitmap(image);
                 image.close();
 
@@ -211,18 +211,19 @@ public class OverlayFunctions {
 //        Log.i(TAG, "time: \n");
         long now = System.currentTimeMillis();
         List<DetectionResult> dt = new ArrayList<>();
+//        Log.i("gpteam", "new");
         if (imageModel != null) {
-
             ClassifyResults res = imageModel.detect(bitmap);
-//            Log.i(TAG, "model time: " + (System.currentTimeMillis() - now));
+//            Log.i("gpteam", "processImage: MODELONLY: "+imageModelName+ " : " + (System.currentTimeMillis()-now)+"ms");
 
+//            Log.i(TAG, "model time: " + (System.currentTimeMillis() - now));
             dt.addAll(res.detectionResults);
         }
+
         if (textModel != null) {
             List<DetectionResult> dt_text = textModel.detect(bitmap);
             dt.addAll(dt_text);
         }
-
         // show the boxes
         mainHandler.post(() -> handleUI(dt));
         bitmap.recycle();
@@ -295,8 +296,10 @@ public class OverlayFunctions {
 
     private void handleUI(List<DetectionResult> dt) {
         if (dynamicView != null) {
-
+            long now = System.currentTimeMillis();
             dynamicView.updateDetections(dt);
+//            Log.i(TAG, "processImage: uionly: "+imageModelName+ " : " + (System.currentTimeMillis()-now)+"ms");
+
         }
 
     }
@@ -455,7 +458,7 @@ public class OverlayFunctions {
      * @apiNote Currently uses the exported NSFW model with metadata
      */
 
-    public void initModel(String textDetector, String imageDetector) throws IOException {
+    public void initModel(String textDetector, String imageDetector, int etn) throws IOException {
 //        boolean isID = imageDetector.equals(ModelTypes.YOLO_V10_F32) || imageDetector.equals(ModelTypes.YOLO_V10_F16) || imageDetector.equals(ModelTypes.MOBILENET_SSD);
 //
 //        boolean isTD = textDetector.equals(ModelTypes.LSTM)
@@ -469,7 +472,7 @@ public class OverlayFunctions {
             imageModelName = imageDetector;
         }
         if (!textDetector.isEmpty() && !textDetector.equals("none")) {
-            textModel = new TextModel(mcontext, textDetector);
+            textModel = new TextModel(mcontext, textDetector, etn);
             textModelName = textDetector;
 
         }

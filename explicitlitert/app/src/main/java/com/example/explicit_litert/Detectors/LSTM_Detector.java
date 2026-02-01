@@ -30,17 +30,23 @@ public class LSTM_Detector {
     Recognizer recognizer;
     LSTM_tokenizer tokenizer;
 
-    public static final String[] LABELS = ModelTypes.LSTM_LABELARRAY;
-    public static final String tokenizerPath = ModelTypes.LSTM_TOKENIZER;
-    public static final String modelPath = ModelTypes.LSTM_MODEL;
+    public static String[] LABELS = ModelTypes.LSTM_LABELARRAY;
+    public static String tokenizerPath = ModelTypes.LSTM_TOKENIZER;
+    public static String modelPath = ModelTypes.LSTM_MODEL;
     int[][] ids;
     int[][] mask;
     float[][] outputs;
 
-    public LSTM_Detector(Context context) {
+    public LSTM_Detector(Context context, int etn, String modelName) {
+        if (modelName.equals(ModelTypes.BILSTM)){
+            Log.i(TAG, "LSTM_Detector: the model is bilstm");
+            LABELS = ModelTypes.BILSTM_LABELARRAY;
+            tokenizerPath = ModelTypes.BILSTM_TOKENIZER;
+            modelPath = ModelTypes.BILSTM_MODEL;
+        }
         mcontext = context;
         try {
-            recognizer = new Recognizer(context);
+            recognizer = new Recognizer(context, etn);
 
             this.mcontext = context;
             MappedByteBuffer modelBuffer = loadModelFile(context, modelPath);
@@ -53,12 +59,7 @@ public class LSTM_Detector {
 //            options.setUseNNAPI(true);
             interpreter = new Interpreter(modelBuffer, options);
 
-            int inputCount = interpreter.getInputTensorCount();
-            for (int i = 0; i < inputCount; i++) {
-                int[] shape = interpreter.getInputTensor(i).shape();
-                String name = interpreter.getInputTensor(i).name();
-                Log.w(TAG, "Input " + i + " (" + name + ") shape: " + Arrays.toString(shape));
-            }
+
             initBuffers();
             InputStream inputStream = mcontext.getAssets().open(tokenizerPath);
             tokenizer = new LSTM_tokenizer(inputStream);
@@ -86,14 +87,19 @@ public class LSTM_Detector {
 
     public List<DetectionResult> detect(Bitmap bitmap) {
         List<DetectionResult> detectionResultList = new ArrayList<>();
+        long nnn = System.currentTimeMillis();
         List<TextResults> textResults = recognizer.textRecognition(bitmap);
-        Log.i(TAG, "\nWORD");
+        Log.i("recognizering", "recognizer_ms lstmbilstm: "+(System.currentTimeMillis()-nnn));
         for (TextResults t : textResults) {
-            String text = t.textContent.replaceAll("[^a-z\\s]", "").replaceAll("\\s+", " ").trim();
+            String text = t.textContent.replaceAll("[^a-z\\s]", " ").replaceAll("\\s+", " ").trim();
             text = text.toLowerCase().trim();
-            if (text.length() < 3) continue;
 
+            if (text.length() < 3) continue;
+//            Log.i(TAG, "detect: finaltext: "+ text);
+            Log.i("gpteam", "new lstmbilstm");
+            long now = System.currentTimeMillis();
             LSTM_tokenizer.TokenizedResult encoding = tokenizer.encode(text);
+            Log.i("gpteam", "encode "+(System.currentTimeMillis()-now));
 //            Log.i(TAG, "text heyys: " + text);
             long[] inputIds = encoding.inputIds;
             long[] attentionMask = encoding.attentionMask;
@@ -102,11 +108,11 @@ public class LSTM_Detector {
 
             float[][] output = runInference(inputIds, attentionMask);
             float max_cfs = output[0][0];
-            Log.i(TAG, "cfs: " + max_cfs);
+//            Log.i(TAG, "cfs: " + max_cfs);
 
             String l = max_cfs > 0.5 ? LABELS[1] : LABELS[0];
             if (l.equals("safe")) continue;
-            Log.i(TAG, "word: "+t.textContent+" label: " + l + "  max cfs: " + max_cfs);
+//            Log.i(TAG, "word: "+t.textContent+" label: " + l + "  max cfs: " + max_cfs);
 
 //            Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
 //            Log.i(TAG, "label: " + l + "  max cfs: " + max_cfs);
@@ -129,35 +135,42 @@ public class LSTM_Detector {
         return detectionResultList;
     }
     public float[][] runInference(long[] inputIds, long[] attentionMask) {
-        long startTime = System.currentTimeMillis();
-        int seqLen = inputIds.length;
-        int max = Integer.MIN_VALUE;
-        int min = Integer.MAX_VALUE;
-
-        for (long id : inputIds) {
-            max = Math.max(max, (int) id);
-            min = Math.min(min, (int) id);
-        }
-        Log.i(TAG, "token range: min=" + min + " max=" + max);
-        float[][] newInput = new float[1][ModelTypes.LSTM_SEQ_LEN];
-
-
-        Log.i(TAG, "runInference: newinput: " +newInput.length + " seqlen: " + seqLen);
-        for (int i = 0; i < ModelTypes.LSTM_SEQ_LEN; i++) {
-            if (i < seqLen) {
-                newInput[0][i] = (float) inputIds[i];
-            } else {
-                newInput[0][i] = 0.0f;
-            }
-        }
-        for (int i = 0; i < 10; i++) {
-            Log.i(TAG, "token[" + i + "] = " + newInput[0][i]);
-        }
         try {
+            long now = System.currentTimeMillis();
+
+            int seqLen = inputIds.length;
+            int max = Integer.MIN_VALUE;
+            int min = Integer.MAX_VALUE;
+
+            for (long id : inputIds) {
+                max = Math.max(max, (int) id);
+                min = Math.min(min, (int) id);
+            }
+//        Log.i(TAG, "token range: min=" + min + " max=" + max);
+            float[][] newInput = new float[1][ModelTypes.LSTM_SEQ_LEN];
+
+
+//        Log.i(TAG, "runInference: newinput: " +newInput.length + " seqlen: " + seqLen);
+            for (int i = 0; i < ModelTypes.LSTM_SEQ_LEN; i++) {
+                if (i < seqLen) {
+                    newInput[0][i] = (float) inputIds[i];
+                } else {
+                    newInput[0][i] = 0.0f;
+                }
+            }
+//        for (int i = 0; i < 10; i++) {
+//            Log.i(TAG, "token[" + i + "] = " + newInput[0][i]);
+//        }
+            Log.i("gpteam", "inputbuffer "+(System.currentTimeMillis()-now));
+            now = System.currentTimeMillis();
+            Log.i("gpteam", "outputbuffer "+(System.currentTimeMillis()-now));
+
+            now = System.currentTimeMillis();
             interpreter.run(newInput, outputs);
-            Log.i(TAG, "runInference: newinpuut done: " +newInput.length);
-            long endTime = System.currentTimeMillis();
-            long duration = endTime - startTime;
+            Log.i("gpteam", "model.run "+(System.currentTimeMillis()-now));
+//            Log.i(TAG, "runInference: newinpuut done: " +newInput.length);
+//            long endTime = System.currentTimeMillis();
+//            long duration = endTime - startTime;
             //        Log.i(TAG, "inference function took: " + duration + " ms");
             return outputs;
         } catch(Exception e) {
@@ -184,3 +197,4 @@ public class LSTM_Detector {
 //    }
 
 }
+

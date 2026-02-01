@@ -95,25 +95,7 @@
                     android:layout_marginEnd="0dp"
                     android:layout_marginRight="0dp"
                     android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/myLabel2"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="start|center_vertical"
-                        android:letterSpacing="0.07"
-                        android:paddingLeft="12px"
-                        android:text="Select overlay type"
-                        android:textAlignment="textStart"
-                        android:textAppearance="@style/TextAppearance.Material3.LabelLarge" />
-
-                    <Spinner
-                        android:id="@+id/overlaySpinner"
-                        android:layout_width="150dp"
-                        android:layout_height="40dp" />
-                </LinearLayout>
+                    android:orientation="horizontal"/>
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:orientation="horizontal">
@@ -161,6 +143,26 @@
                             android:layout_height="40dp" />
                     </LinearLayout>
                 </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/textView2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Recognizer Offset" />
+
+                    <EditText
+                        android:id="@+id/editTextNumber"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ems="10"
+                        android:inputType="number" />
+                </LinearLayout>
+
             </LinearLayout>
         </ScrollView>
 

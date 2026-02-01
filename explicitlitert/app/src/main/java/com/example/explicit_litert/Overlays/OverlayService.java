@@ -15,6 +15,7 @@ import android.view.WindowManager;
 import androidx.annotation.Nullable;
 
 import com.example.explicit_litert.MainActivity;
+import com.example.explicit_litert.PerformanceMonitor;
 
 import java.io.File;
 import java.io.IOException;
@@ -72,7 +73,7 @@ public class OverlayService extends Service {
     Notification notification;
     MediaProjectionManager mediaProjectionManager;
     WindowManager wm;
-//    private PerformanceMonitor performanceMonitor;
+    private PerformanceMonitor performanceMonitor;
 
     @Override
     public void onCreate() {
@@ -95,7 +96,7 @@ public class OverlayService extends Service {
 
         String textDetector = intent.getStringExtra("text_detector");
         String imageDetector = intent.getStringExtra("image_detector");
-
+        int etn = intent.getIntExtra("editTextNumber", 60);
 
         Log.w(TAG, "onStartCommand: Media projection will now start capturing");
 
@@ -113,7 +114,7 @@ public class OverlayService extends Service {
                 Log.i(TAG, "receiving text model: "+ textDetector);
                 Log.i(TAG, "receiving image model: "+ imageDetector);
 
-                overlayFunctions.initModel(textDetector, imageDetector);
+                overlayFunctions.initModel(textDetector, imageDetector, etn);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -127,29 +128,19 @@ public class OverlayService extends Service {
         return START_STICKY;
     }
     private void startPerformanceMonitoring() {
-        File outputDir = new File(getExternalFilesDir(null), "performance_logs");
-        if (!outputDir.exists()) {
-            outputDir.mkdirs();
-        }
-
-        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
-        File csvFile = new File(outputDir, "performance_" + timestamp + ".csv");
-
-//        performanceMonitor = new PerformanceMonitor(this);
-//        performanceMonitor.startMonitoring(csvFile);
-
-        Log.i(TAG, "Performance logs: " + csvFile.getAbsolutePath());
+        performanceMonitor = new PerformanceMonitor(this);
+        performanceMonitor.startMonitoring();
     }
-//    private void stopPerformanceMonitoring() {
-//        if (performanceMonitor != null) {
-//            performanceMonitor.stopMonitoring();
-//            performanceMonitor = null;
-//        }
-//    }
+    private void stopPerformanceMonitoring() {
+        if (performanceMonitor != null) {
+            performanceMonitor.stopMonitoring();
+            performanceMonitor = null;
+        }
+    }
     @Override
     public void onDestroy() {
         super.onDestroy();
-//        stopPerformanceMonitoring();
+        stopPerformanceMonitoring();
 
         if (overlayFunctions != null) {
             overlayFunctions.destroy();
@@ -160,6 +151,8 @@ public class OverlayService extends Service {
             mediaProjection.stop();
             mediaProjection = null;
         }
+//        System.gc();
+//        System.runFinalization();
     }
 
     @Override
@@ -174,6 +167,8 @@ public class OverlayService extends Service {
             mediaProjection.stop();
             mediaProjection = null;
         }
+        stopPerformanceMonitoring();
+        stopSelf();
     }
 
     @Nullable

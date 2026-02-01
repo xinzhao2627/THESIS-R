@@ -7,6 +7,7 @@ import android.util.Log;
 
 import com.example.explicit_litert.Types.ClassifyResults;
 import com.example.explicit_litert.Types.DetectionResult;
+import com.example.explicit_litert.Types.ModelTypes;
 import com.google.ai.edge.litert.Accelerator;
 import com.google.ai.edge.litert.CompiledModel;
 import com.google.ai.edge.litert.TensorBuffer;
@@ -25,19 +26,25 @@ public class Yolov5_Detector {
     private static final float CONFIDENCE_THRESHOLD = 0.25f;
     List<String> labels;
     int numChannel = 7;
-//    int numElements = 25200;
-//    int img_size = 640;
-    int numElements = 6300;
-    int img_size = 320;
+    int numElements = 25200;
+    int img_size = 640;
+//    int numElements = 6300;
+//    int img_size = 320;
 
     List<TensorBuffer> inputBuffer;
     List<TensorBuffer> outputBuffer;
     CompiledModel model;
 
-    public Yolov5_Detector(Context context, String chosen_image_model) throws IOException {
+    public Yolov5_Detector(Context context, String chosen_image_model, String modelName) throws IOException {
+        if (modelName.equals(ModelTypes.YOLO_V5N_320) || modelName.equals(ModelTypes.YOLO_V5S_320)){
+            Log.i(TAG, "Yolov5_Detector: using "+ modelName + " modelpath: " + chosen_image_model);
+            numElements = 6300;
+            img_size = 320;
+        }
         labels = new ArrayList<>();
         labels.add("nsfw");
         labels.add("safe");
+//        chosen imaage model is the model path
         MODEL_PATH = chosen_image_model;
         String modelFilePath = copyAssetToFile(context, chosen_image_model);
 
@@ -76,12 +83,10 @@ public class Yolov5_Detector {
         int width = image.getWidth();
         int height = image.getHeight();
         int numPixels = width * height;
-
         int[] pixelsIntArray = new int[numPixels];
         float[] outputFloatArray = new float[numPixels * 3]; // 3 channels (R, G, B)
-
         image.getPixels(pixelsIntArray, 0, width, 0, 0, width, height);
-
+        long nn = System.currentTimeMillis();
         for (int i = 0; i < numPixels; i++) {
             int pixel = pixelsIntArray[i];
 
@@ -94,26 +99,39 @@ public class Yolov5_Detector {
             outputFloatArray[outputBaseIndex + 1] = (g - mean) / stddev; // green
             outputFloatArray[outputBaseIndex + 2] = (b - mean) / stddev; // blue
         }
-        Log.i(TAG, "normalize(): " + (System.currentTimeMillis() - now));
+//        Log.i(TAG, "normalize(): " + (System.currentTimeMillis() - now));
+//        Log.i(TAG, "normalize forloop(): " + (System.currentTimeMillis() - nn));
+
         return outputFloatArray;
     }
 
     // run the interpreter
     public ClassifyResults detect(Bitmap bitmap) {
-        Log.i(TAG, "\n Function time in milliseconds (YOLOV10) size widht: " + bitmap.getWidth() + " height: " + bitmap.getHeight());
-        Bitmap image = Bitmap.createScaledBitmap(bitmap, img_size, img_size, true);
-        float[] inputFloatArray = normalize(image, 0f, 255f);
         try {
+            Log.i("gpteam", "new yolov5_"+img_size);
             long now = System.currentTimeMillis();
-            inputBuffer.get(0).writeFloat(inputFloatArray);
-            model.run(inputBuffer, outputBuffer);
-            float[] predictions = outputBuffer.get(0).readFloat();
-            Log.i(TAG, "model.run: " + (System.currentTimeMillis() - now));
+            Bitmap image = Bitmap.createScaledBitmap(bitmap, img_size, img_size, false);
+            Log.i("gpteam", "scale: " + (System.currentTimeMillis() - now));
 
+            now = System.currentTimeMillis();
+            float[] inputFloatArray = normalize(image, 0f, 255f);
+            Log.i("gpteam", "normalize: " + (System.currentTimeMillis() - now));
+
+            now = System.currentTimeMillis();
+            inputBuffer.get(0).writeFloat(inputFloatArray);
+            Log.i("gpteam", "inputbuffer: " + (System.currentTimeMillis() - now));
+
+            now = System.currentTimeMillis();
+            model.run(inputBuffer, outputBuffer);
+            Log.i("gpteam", "model.run: " + (System.currentTimeMillis() - now));
+
+            now = System.currentTimeMillis();
+            float[] predictions = outputBuffer.get(0).readFloat();
+            Log.i("gpteam", "outputbuffer: " + (System.currentTimeMillis() - now));
             return new ClassifyResults(null, getBoundsList(predictions));
 //            Log.i(TAG, "detect: a: "+ a.length);
         } catch (Exception e) {
-            Log.i(TAG, "detect: error" + e.getMessage());
+            Log.i("gpteam", "detect: error" + e.getMessage());
         }
 
         return new ClassifyResults(null, new ArrayList<>());
@@ -156,19 +174,19 @@ public class Yolov5_Detector {
             float y1 = cy - h / 2f;
             float x2 = cx + w / 2f;
             float y2 = cy + h / 2f;
-            Log.i(TAG, "getBoundsList: inti is: " + bestClass);
+//            Log.i(TAG, "getBoundsList: inti is: " + bestClass);
 
             String l = labels.get(bestClass);
             if (l.equals("safe")) continue;
-            Log.i("YOLO_BOX",
-                    "i=" + i +
-                            " label=" + l +
-                            " score=" + bestScore +
-                            " x1=" + x1 +
-                            " y1=" + y1 +
-                            " x2=" + x2 +
-                            " y2=" + y2
-            );
+//            Log.i("YOLO_BOX",
+//                    "i=" + i +
+//                            " label=" + l +
+//                            " score=" + bestScore +
+//                            " x1=" + x1 +
+//                            " y1=" + y1 +
+//                            " x2=" + x2 +
+//                            " y2=" + y2
+//            );
             results.add(new DetectionResult(
                     bestClass,
                     confidence,
@@ -177,7 +195,7 @@ public class Yolov5_Detector {
                     0
             ));
         }
-        Log.i(TAG, "getBoundsList(): " + (System.currentTimeMillis() - now));
+//        Log.i(TAG, "getBoundsList(): " + (System.currentTimeMillis() - now));
         return results;
     }
 

@@ -4,18 +4,26 @@ plugins {
 
 android {
     namespace = "com.example.explicit_litert"
-    compileSdk = 36
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.example.explicit_litert"
         minSdk = 34
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a")
+            isUniversalApk = true
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -41,6 +49,5 @@ dependencies {
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
     implementation(libs.play.services.vision)
-
     implementation ("com.google.ai.edge.litert:litert:2.1.0")
 }

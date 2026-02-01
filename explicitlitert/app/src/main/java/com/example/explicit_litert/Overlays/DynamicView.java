@@ -31,13 +31,16 @@ public class DynamicView {
         DetectionResult dr;
         long lastSeen;
         int misses;
+//        int toRemove;
 
         TrackedBox(DetectionResult dr, long t) {
             this.dr = dr;
             this.lastSeen = t;
             this.misses = 0;
+//            this.toRemove = 0;
         }
     }
+
     private static final float MODEL1_SCALE = 1.9f;
     Context mcontext;
     int screenWidth;
@@ -56,18 +59,6 @@ public class DynamicView {
     String textModelName;
 
 
-//    private View colorSquare;
-//    private WindowManager.LayoutParams squareParams;
-//    private final int[] colors = {
-//            Color.RED,
-//            Color.GREEN,
-//            Color.BLUE,
-//            Color.YELLOW,
-//            Color.MAGENTA,
-//            Color.CYAN
-//    };
-//    private int colorIndex = 0;
-
     public DynamicView(Context mcontext, WindowManager wm, String imageModelName, String textModelName) {
         this.mcontext = mcontext;
         this.wm = wm;
@@ -83,70 +74,13 @@ public class DynamicView {
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 Gravity.TOP | Gravity.START
         );
-//        createColorSquare();
-
     }
-    //    private void createColorSquare() {
-//        colorSquare = new View(mcontext);
-//
-//        int sizePx = 40; // square size
-//        colorSquare.setBackgroundColor(colors[0]);
-//
-//        squareParams = new WindowManager.LayoutParams(
-//                sizePx,
-//                sizePx,
-//                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-//                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-//                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-//                PixelFormat.TRANSLUCENT
-//        );
-//
-//        squareParams.gravity = Gravity.TOP | Gravity.START;
-//        squareParams.x = screenWidth / 2 - sizePx / 2;
-//        squareParams.y = screenHeight / 2 - sizePx / 2;
-//
-//
-//        wm.addView(colorSquare, squareParams);
-//        startColorRandomizer();
-//
-//    }
-//    private Handler colorHandler = new Handler(Looper.getMainLooper());
-//    private Runnable colorRunnable;
-//    private final Random random = new Random();
-//    private void startColorRandomizer() {
-//        colorRunnable = new Runnable() {
-//            @Override
-//            public void run() {
-//                int color = Color.rgb(
-//                        random.nextInt(256),
-//                        random.nextInt(256),
-//                        random.nextInt(256)
-//                );
-//
-//                if (colorSquare != null) {
-//                    colorSquare.setBackgroundColor(color);
-//                    colorHandler.postDelayed(this, 300); // change every 300ms
-//                }
-//            }
-//        };
-//
-//        colorHandler.post(colorRunnable);
-//    }
-//    move all previous detection's view upward or downard depending on the Y-offset:
-    public void moveDetections(float offset){
-//        iterate all existing overlays
-        for (Map.Entry<TrackedBox, View> ovl: overlayMap.entrySet()){
-            View v = ovl.getValue();
-            v.setTranslationY(v.getTranslationY() + offset);
 
-        }
-    }
 
     public void updateDetections(List<DetectionResult> newDetections) {
         long now = System.currentTimeMillis();
-
         // update tracking (existing + new + removed)
-        List<DetectionResult> tracked = updateTracking(newDetections, now);
+        updateTracking(newDetections, now);
 
         // create or update overlays for current tracked boxes
         for (TrackedBox tb : previousDetections) {
@@ -184,19 +118,39 @@ public class DynamicView {
             }
             return false;
         });
-        Log.i("updateDetection", "updateDetections: "+ (System.currentTimeMillis()-now)+"ms");
+//        Log.i("updateDetection", "updateDetections: "+ (System.currentTimeMillis()-now)+"ms");
     }
 
     // initialize text design
-    private TextView setText(DetectionResult dr){
+    private TextView setText(DetectionResult dr) {
         TextView labelView = new TextView(mcontext);
-        labelView.setText(dr.label + " " + String.format("%.2f", dr.confidence));
+        labelView.setText(dr.label);
         labelView.setTextColor(Color.WHITE);
         labelView.setTextSize(12);
         labelView.setPadding(6, 4, 6, 4);
         labelView.setBackgroundColor(Color.argb(180, 30, 30, 30)); // black bg
         return labelView;
     }
+    //        if (imageModelName == ModelTypes.MOBILENET_SSD) {
+//
+//            float leftPx   = dr.left   * screenWidth;
+//            float topPx    = dr.top    * screenHeight;
+//            float rightPx  = dr.right  * screenWidth;
+//            float bottomPx = dr.bottom * screenHeight;
+//
+//            width  = rightPx - leftPx;
+//            height = bottomPx - topPx;
+//            x = leftPx;
+//            y = topPx;
+//        }
+
+    // enlarge if modelType == 1
+//        if (dr.modelType == 1) {
+//            float extraH = (height * (MODEL1_SCALE - 1)) / 2;
+//            y -= extraH;
+//            height *= MODEL1_SCALE;
+//        }
+
     private View createOverlayView(DetectionResult dr) {
         // Outer container (handles position and border)
         FrameLayout boxContainer = new FrameLayout(mcontext);
@@ -210,33 +164,45 @@ public class DynamicView {
 
         // add text in box
         boxContainer.addView(labelView, labelParams);
-
+//        Log.i("", "createOverlayView: screenwidht " + screenWidth + " screenheight " + screenHeight);
         // coordinates
         float width = (dr.right - dr.left) * screenWidth;
         float height = (dr.bottom - dr.top) * screenHeight;
         float x = dr.left * screenWidth;
         float y = dr.top * screenHeight;
-
-//        if (imageModelName == ModelTypes.MOBILENET_SSD) {
-//
-//            float leftPx   = dr.left   * screenWidth;
-//            float topPx    = dr.top    * screenHeight;
-//            float rightPx  = dr.right  * screenWidth;
-//            float bottomPx = dr.bottom * screenHeight;
-//
-//            width  = rightPx - leftPx;
-//            height = bottomPx - topPx;
-//            x = leftPx;
-//            y = topPx;
-//        }
-
-        // enlarge if modelType == 1
+//        Log.i("OCR_OVERLAY (shown0)",
+//                " | left=" + dr.left +
+//                        " top=" + dr.top +
+//                        " right=" + dr.right +
+//                        " bottom=" + dr.bottom +
+//                        " | x=" + x +
+//                        " y=" + y +
+//                        " width=" + width +
+//                        " height=" + height
+//        );
 //        if (dr.modelType == 1) {
 //            float extraH = (height * (MODEL1_SCALE - 1)) / 2;
 //            y -= extraH;
 //            height *= MODEL1_SCALE;
 //        }
-
+//        if (dr.modelType == 1){
+//
+//
+//            x = dr.left ;
+//            y = dr.top  ;
+//            width  = (dr.right  - dr.left) ;
+//            height = (dr.bottom - dr.top ) ;
+//            Log.i("OCR_OVERLAY (shown0)",
+//                            " | left=" + dr.left +
+//                            " top=" + dr.top +
+//                            " right=" + dr.right +
+//                            " bottom=" + dr.bottom +
+//                            " | x=" + x +
+//                            " y=" + y +
+//                            " width=" + width +
+//                            " height=" + height
+//            );
+//        }
         // relocate box
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 (int) width,
@@ -272,13 +238,40 @@ public class DynamicView {
 //            y -= extraH;
 //            height *= MODEL1_SCALE;
 //        }
-
+//        if (dr.modelType == 1){
+//            float scaleX = screenWidth  / 1088f;   // bitmapWidth
+//            float scaleY = screenHeight / 2340f;   // bitmapHeight
+//
+//             x = dr.left * scaleX;
+//            y = dr.top  * scaleY;
+//            width  = (dr.right  - dr.left) * scaleX;
+//            height = (dr.bottom - dr.top ) * scaleY;
+//
+//        }
+//        if (dr.modelType == 1){
+//
+//            x = dr.left ;
+//            y = dr.top  ;
+//            width  = (dr.right  - dr.left) ;
+//            height = (dr.bottom - dr.top ) ;
+//            Log.i("OCR_OVERLAY (shown0)",
+//                            " | left=" + dr.left +
+//                            " top=" + dr.top +
+//                            " right=" + dr.right +
+//                            " bottom=" + dr.bottom +
+//                            " | x=" + x +
+//                            " y=" + y +
+//                            " width=" + width +
+//                            " height=" + height
+//            );
+//        }
         params.x = (int) x;
         params.y = (int) y;
         params.width = (int) width;
         params.height = (int) height;
         wm.updateViewLayout(v, params);
     }
+
     private void removeOverlay(TrackedBox tb) {
         View v = overlayMap.get(tb);
         if (v != null) {
@@ -294,6 +287,7 @@ public class DynamicView {
             wm.removeView(v);
         }
     }
+
     private List<DetectionResult> applyNMS(List<DetectionResult> detections, float nmsThreshold) {
         if (detections.size() <= 1) return detections;
 
@@ -321,17 +315,18 @@ public class DynamicView {
                     float overlap = iou(current, candidate);
                     if (overlap > nmsThreshold) {
                         suppressed[j] = true;
-                        Log.d("NMS", String.format("Suppressed box %s (%.2f) due to overlap %.2f with %s (%.2f)",
-                                candidate.label, candidate.confidence, overlap,
-                                current.label, current.confidence));
+//                        Log.d("NMS", String.format("Suppressed box %s (%.2f) due to overlap %.2f with %s (%.2f)",
+//                                candidate.label, candidate.confidence, overlap,
+//                                current.label, current.confidence));
                     }
                 }
             }
         }
 
-        Log.i("NMS", String.format("Filtered %d → %d boxes", detections.size(), kept.size()));
+//        Log.i("NMS", String.format("Filtered %d → %d boxes", detections.size(), kept.size()));
         return kept;
     }
+
     //    dt is the current list of detection results
 //    now is just milliseconds tracker
     private List<DetectionResult> updateTracking(List<DetectionResult> dt, long now) {
@@ -369,7 +364,7 @@ public class DynamicView {
             }
 
 //          if a detection result is new, add it in the previous detections
-            Log.i("heyheyy", "updateTracking: current prevdec size: " + dt.size()+previousDetections.size());
+//            Log.i("heyheyy", "updateTracking: current prevdec size: " + dt.size()+previousDetections.size());
             for (int i = 0; i < dt.size(); i++) {
                 if (!matched[i]) {
 //                    previousDetections.add(new TrackedBox(dt.get(i), now));
@@ -380,11 +375,11 @@ public class DynamicView {
                     // Check if this new box overlaps with ANY existing tracked box
                     if (!overlapsWithExisting(newBox)) {
                         previousDetections.add(new TrackedBox(newBox, now));
-                        Log.d("Tracking", String.format("Added new box: %s (%.2f)",
-                                newBox.label, newBox.confidence));
+//                        Log.d("Tracking", String.format("Added new box: %s (%.2f)",
+//                                newBox.label, newBox.confidence));
                     } else {
-                        Log.d("Tracking", String.format("Rejected box %s (%.2f) - overlaps with tracked box",
-                                newBox.label, newBox.confidence));
+//                        Log.d("Tracking", String.format("Rejected box %s (%.2f) - overlaps with tracked box",
+//                                newBox.label, newBox.confidence));
                     }
                 }
             }
@@ -414,6 +409,7 @@ public class DynamicView {
 //        for (TrackedBox tb : previousDetections) res.add(tb.dr);
         return res;
     }
+
     private boolean overlapsWithExisting(DetectionResult newBox) {
         float overlapThreshold = 0.3f; // Lower than IOU_THRESHOLD to be more strict
 
@@ -432,6 +428,7 @@ public class DynamicView {
 
         return false;
     }
+
     // n^m
     private float iou(DetectionResult a, DetectionResult b) {
         float interLeft = Math.max(a.left, b.left);
@@ -447,8 +444,9 @@ public class DynamicView {
         float areaB = (b.right - b.left) * (b.bottom - b.top);
         return interArea / (areaA + areaB - interArea + 1e-6f);
     }
-    public void clearDetectionOverlays(){
-        for (View v : overlayMap.values()){
+
+    public void clearDetectionOverlays() {
+        for (View v : overlayMap.values()) {
             try {
                 wm.removeView(v);
 

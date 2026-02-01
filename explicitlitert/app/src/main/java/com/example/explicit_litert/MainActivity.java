@@ -12,7 +12,9 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -40,13 +42,14 @@ public class MainActivity extends AppCompatActivity {
     final String[] options = {"dynamic", "static"};
     //    final String[] tmo = {"none", ModelTypes.LogisticRegression, ModelTypes.LSTM, ModelTypes.NaiveBayes, ModelTypes.SVM, ModelTypes.DISTILBERT_TAGALOG, ModelTypes.ROBERTA_TAGALOG};
 //    final String[] imo = {"none", ModelTypes.YOLO_V10_F32, ModelTypes.MOBILENET_SSD, ModelTypes.EFFICIENTDET, ModelTypes.YOLO_V11N, ModelTypes.YOLO_V5};
-    final String[] tmo = {"none", ModelTypes.LSTM, ModelTypes.DISTILBERT_TAGALOG, ModelTypes.ROBERTA_TAGALOG, ModelTypes.MOBILEBERT};
-    final String[] imo = {"none", ModelTypes.YOLO_V11N, ModelTypes.YOLO_V10_F16, ModelTypes.YOLO_V5};
+    final String[] tmo = {"none", ModelTypes.LSTM, ModelTypes.BILSTM, ModelTypes.DISTILBERT_TAGALOG, ModelTypes.ROBERTA_TAGALOG, ModelTypes.MOBILEBERT};
+    final String[] imo = {"none", ModelTypes.YOLO_V11N, ModelTypes.YOLO_V10_F16, ModelTypes.YOLO_V5N_320, ModelTypes.YOLO_V5N_640, ModelTypes.YOLO_V5S_320};
 
 
     String imageDetector;
     String textDetector;
     String selectedOption;
+    EditText editTextNumber;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
         runAppButton = findViewById(R.id.runAppButton);
+        editTextNumber = findViewById(R.id.editTextNumber);
         overlayPermissionButton = findViewById(R.id.overlayPermissionButton);
         mediaProjectionManager = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
         overlayDropdownSetup();
@@ -145,6 +149,20 @@ public class MainActivity extends AppCompatActivity {
 
                     serviceIntent.putExtra("image_detector", imageDetector);
                     serviceIntent.putExtra("text_detector", textDetector);
+
+
+                    String text = editTextNumber.getText().toString().trim();
+                    int etn = 0;
+
+                    try {
+                        etn = Integer.parseInt(text);
+                        Log.i(TAG, "onCreate: etn is: " + etn);
+                    } catch (NumberFormatException e) {
+                        etn = 60; // default recognizer offset
+                        Log.i(TAG, "onCreate: error etn is 60: " + etn);
+                    }
+
+                    serviceIntent.putExtra("editTextNumber", etn);
 
                     Log.d(TAG, "Starting service with resultCode: " + resultCode);
                     Log.d(TAG, "Starting service with data: " + data);

@@ -1,4 +1,5 @@
 package com.example.explicit_litert.Detectors;
+
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
@@ -25,6 +26,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 public class Mobilebert_Detector {
     private static final String TAG = "MOBILEBERT_TAGALOG";
     private Context mcontext;
@@ -40,10 +42,10 @@ public class Mobilebert_Detector {
     int[][] tokenType;
     float[][] outputs;
 
-    public Mobilebert_Detector(Context context) {
+    public Mobilebert_Detector(Context context, int etn) {
         mcontext = context;
         try {
-            recognizer = new Recognizer(context);
+            recognizer = new Recognizer(context, etn);
             softmaxConverter = new SoftmaxConverter();
 
             this.mcontext = context;
@@ -72,6 +74,7 @@ public class Mobilebert_Detector {
 
 
     }
+
     private static MappedByteBuffer loadModelFile(Context context, String assetPath)
             throws IOException {
 
@@ -84,22 +87,32 @@ public class Mobilebert_Detector {
 
         return channel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
     }
+
     public List<DetectionResult> detect(Bitmap bitmap) {
         List<DetectionResult> detectionResultList = new ArrayList<>();
+        long nnn = System.currentTimeMillis();
         List<TextResults> textResults = recognizer.textRecognition(bitmap);
-        long startTime = System.currentTimeMillis();
+        Log.i("recognizering", "recognizer_ms mobilebert: "+(System.currentTimeMillis()-nnn));
         for (TextResults t : textResults) {
-            String text = t.textContent.replaceAll("[^a-z\\s]", "").replaceAll("\\s+", " ").trim();
+            String text = t.textContent.replaceAll("[^a-z\\s]", " ").replaceAll("\\s+", " ").trim();
             text = text.toLowerCase().trim();
             if (text.length() < 3) continue;
+            Log.i("gpteam", "new mobilebert");
+            long now = System.currentTimeMillis();
             Mobilebert_tokenizer.TokenizedResult encoding = tokenizer.encode(text);
+            Log.i("gpteam", "encode " + (System.currentTimeMillis() - now));
+
             long[] inputIds = encoding.inputIds;
             long[] attentionMask = encoding.attentionMask;
             long[] tokenTypeIds = encoding.tokenTypeIds;
             if (inputIds.length < 1) continue;
 //            ensureInputOrder(); // see below
-            float[][] output = runInference(inputIds, attentionMask,tokenTypeIds);
+            float[][] output = runInference(inputIds, attentionMask, tokenTypeIds);
+
+            now = System.currentTimeMillis();
             float[] probabilities = softmaxConverter.softmax(output[0]);
+            Log.i("gpteam", "softmax " + (System.currentTimeMillis() - now));
+
             float max_cfs = -100f;
             String l = "";
 
@@ -114,10 +127,12 @@ public class Mobilebert_Detector {
 //            Log.i(TAG, "output length: " + output.length);
 //            Log.i(TAG, "output array: " + Arrays.toString(output[0]));
 
-            Log.i(TAG, "\nSTART");
+//            Log.i(TAG, "\nSTART");
 
-            Log.i(TAG, "heence word: "+text + "  output[0][0]: "+output[0][0] + " | output[0][1]: "+ output[0][1] + " softmax[0]: " +probabilities[0] + " softmax[1]: "+ probabilities[1] + " label: " +l);
-            debugInput(text, inputIds, attentionMask);
+//            Log.i(TAG, "heence word: "+text + "  output[0][0]: "+output[0][0] + " | output[0][1]: "+ output[0][1] + " softmax[0]: " +probabilities[0] + " softmax[1]: "+ probabilities[1] + " label: " +l);
+
+//            debugInput(text, inputIds, attentionMask);
+
 //            int predClass = output[0][0] > output[0][1] ? 0 : 1;
 //            if (predClass == 1) continue;
 //            Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
@@ -135,11 +150,8 @@ public class Mobilebert_Detector {
                         1
                 ));
             }
-
-            Log.i(TAG, "\n");
         }
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
+
 //        Log.i(TAG, "this for loop took: " + duration + " ms");
         return detectionResultList;
     }
@@ -153,21 +165,29 @@ public class Mobilebert_Detector {
     }
 
     public float[][] runInference(long[] inputIds, long[] attentionMask, long[] tokenTypeIds) {
-        long startTime = System.currentTimeMillis();
+        if (interpreter == null) return outputs;
+        long now = System.currentTimeMillis();
         int seqLen = inputIds.length;
         for (int i = 0; i < seqLen; i++) {
             ids[0][i] = (int) inputIds[i];
             mask[0][i] = (int) attentionMask[i];
             tokenType[0][i] = (int) tokenTypeIds[i];
         }
+//        old
+//        Object[] inputArray = new Object[]{mask, ids, tokenType};
+        Object[] inputArray = new Object[]{ids, mask, tokenType};
 
-        Object[] inputArray = new Object[]{mask, ids, tokenType};
+        Log.i("gpteam", "inputbuffer " + (System.currentTimeMillis() - now));
+
+        now = System.currentTimeMillis();
         Map<Integer, Object> outputsMap = new HashMap<>();
         outputsMap.put(0, outputs);
+        Log.i("gpteam", "outputbuffer " + (System.currentTimeMillis() - now));
 
+        now = System.currentTimeMillis();
         interpreter.runForMultipleInputsOutputs(inputArray, outputsMap);
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
+        Log.i("gpteam", "model.run " + (System.currentTimeMillis() - now));
+
 //        Log.i(TAG, "inference function took: " + duration + " ms");
         return outputs;
     }

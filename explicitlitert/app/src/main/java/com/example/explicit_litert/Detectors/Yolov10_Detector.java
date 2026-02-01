@@ -88,21 +88,36 @@ public class Yolov10_Detector {
             outputFloatArray[outputBaseIndex + 1] = (g - mean) / stddev; // green
             outputFloatArray[outputBaseIndex + 2] = (b - mean) / stddev; // blue
         }
-        Log.i(TAG, "normalize(): " + (System.currentTimeMillis() - now));
+//        Log.i(TAG, "normalize(): " + (System.currentTimeMillis() - now));
         return outputFloatArray;
     }
     // run the interpreter
     public ClassifyResults detect(Bitmap bitmap) {
-        Log.i(TAG, "\n Function time in milliseconds (YOLOV10) size widht: " + bitmap.getWidth() + " height: " + bitmap.getHeight());
+//        Log.i(TAG, "\n Function time in milliseconds (YOLOV10) size widht: " + bitmap.getWidth() + " height: " + bitmap.getHeight());
 
-        Bitmap image = Bitmap.createScaledBitmap(bitmap, 640, 640, true);
-        float[] inputFloatArray = normalize(image, 0f, 255f);
+
         try {
+            Log.i("gpteam", "new yolov10_640");
             long now = System.currentTimeMillis();
+            Bitmap image = Bitmap.createScaledBitmap(bitmap, 640, 640, false);
+            Log.i("gpteam", "scale: " + (System.currentTimeMillis() - now));
+
+            now = System.currentTimeMillis();
+            float[] inputFloatArray = normalize(image, 0f, 255f);
+            Log.i("gpteam", "normalize: " + (System.currentTimeMillis() - now));
+
+            now = System.currentTimeMillis();
             inputBuffer.get(0).writeFloat(inputFloatArray);
+            Log.i("gpteam", "inputbuffer: " + (System.currentTimeMillis() - now));
+
+            now = System.currentTimeMillis();
             model.run(inputBuffer, outputBuffer);
+            Log.i("gpteam", "model.run: " + (System.currentTimeMillis() - now));
+
+            now = System.currentTimeMillis();
             float[] predictions = outputBuffer.get(0).readFloat();
-            Log.i(TAG, "model.run: " + (System.currentTimeMillis() - now));
+            Log.i("gpteam", "outputbuffer: " + (System.currentTimeMillis() - now));
+
             return new ClassifyResults(null, getBoundsList(predictions));
 //            Log.i(TAG, "detect: a: "+ a.length);
         } catch (Exception e) {
@@ -130,13 +145,13 @@ public class Yolov10_Detector {
             int labelId = (int) predictions[offset + 5];
             String label = lbls.get(labelId);
             if ("safe".equals(label)) continue;
-            Log.i(TAG,
-                    "predictions: " +
-                            predictions[offset] + ", " +
-                            predictions[offset + 1] + ", " +
-                            predictions[offset + 2] + ", " +
-                            predictions[offset + 3]
-            );
+//            Log.i(TAG,
+//                    "predictions: " +
+//                            predictions[offset] + ", " +
+//                            predictions[offset + 1] + ", " +
+//                            predictions[offset + 2] + ", " +
+//                            predictions[offset + 3]
+//            );
 
             results.add(new DetectionResult(
                     labelId,
@@ -149,7 +164,7 @@ public class Yolov10_Detector {
                     0
             ));
         }
-        Log.i(TAG, "getBoundsList(): " + (System.currentTimeMillis() - now));
+//        Log.i(TAG, "getBoundsList(): " + (System.currentTimeMillis() - now));
         return results;
     }
 //    //    close the model, this runs one time
@@ -177,7 +192,7 @@ public class Yolov10_Detector {
                 labels.clear();
                 labels = null;
             }
-            Log.i(TAG, "cleanup(): Model resources released successfully");
+//            Log.i(TAG, "cleanup(): Model resources released successfully");
 
         } catch (Exception e) {
             Log.e(TAG, "cleanup(): Error releasing resources: " + e.getMessage());

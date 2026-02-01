@@ -18,9 +18,12 @@ import java.util.List;
 public class Recognizer {
     Context mcontext;
     private static final String TAG = "Recognizer";
+    int etn = 60;
     TextRecognizer textRecognizer;
-    public Recognizer(Context context){
+    public Recognizer(Context context, int etn){
         mcontext = context;
+        this.etn = etn;
+        Log.i(TAG, "Recognizer: etn is: "+etn);
         textRecognizer = new TextRecognizer.Builder(mcontext).build();
     }
     public List<TextResults> textRecognition(Bitmap bitmap) {
@@ -31,7 +34,7 @@ public class Recognizer {
             return textList;
         }
         try {
-            int upwardOffset = 60;
+
             Frame frameimage = new Frame.Builder().setBitmap(bitmap).build();
             SparseArray<TextBlock> textBlockSparseArray = textRecognizer.detect(frameimage);
             Log.w(TAG, "textRecognition: hihi");
@@ -42,8 +45,8 @@ public class Recognizer {
 //                    Log.w(TAG, i + " textRecognition: " + t.getValue());
                     Rect rect = t.getBoundingBox();
 //                    int offset = (int) (rect.height() * 0.1);
-                    int top = rect.top - upwardOffset;
-                    int bottom = rect.bottom - upwardOffset;
+                    int top = rect.top - etn;
+                    int bottom = rect.bottom - etn;
 
                     // Prevent clipping above screen
                     if (top < 0) {

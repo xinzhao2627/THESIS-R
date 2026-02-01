@@ -41,10 +41,10 @@ public class DistilBERT_tagalog_Detector {
     int[][] mask;
     float[][] outputs;
 
-    public DistilBERT_tagalog_Detector(Context context) {
+    public DistilBERT_tagalog_Detector(Context context, int etn) {
         mcontext = context;
         try {
-            recognizer = new Recognizer(context);
+            recognizer = new Recognizer(context, etn);
             softmaxConverter = new SoftmaxConverter();
 
             this.mcontext = context;
@@ -87,19 +87,28 @@ public class DistilBERT_tagalog_Detector {
     }
     public List<DetectionResult> detect(Bitmap bitmap) {
         List<DetectionResult> detectionResultList = new ArrayList<>();
+        long nnn = System.currentTimeMillis();
         List<TextResults> textResults = recognizer.textRecognition(bitmap);
+        Log.i("recognizering", "recognizer_ms distiltiny: "+(System.currentTimeMillis()-nnn));
         long startTime = System.currentTimeMillis();
         for (TextResults t : textResults) {
-            String text = t.textContent.replaceAll("[^a-z\\s]", "").replaceAll("\\s+", " ").trim();
+            String text = t.textContent.replaceAll("[^a-z\\s]", " ").replaceAll("\\s+", " ").trim();
             text = text.toLowerCase().trim();
             if (text.length() < 3) continue;
+            Log.i("gpteam", "new distilbertortinybert");
+            long now = System.currentTimeMillis();
             Distilbert_tagalog_tokenizer.TokenizedResult encoding = tokenizer.encode(text);
+            Log.i("gpteam", "encode "+(System.currentTimeMillis()-now));
+
             long[] inputIds = encoding.inputIds;
             long[] attentionMask = encoding.attentionMask;
             if (inputIds.length < 1) continue;
 //            ensureInputOrder(); // see below
             float[][] output = runInference(inputIds, attentionMask);
+            now = System.currentTimeMillis();
             float[] probabilities = softmaxConverter.softmax(output[0]);
+            Log.i("gpteam", "softmax "+(System.currentTimeMillis()-now));
+
             float max_cfs = -100f;
             String l = "";
 
@@ -114,16 +123,16 @@ public class DistilBERT_tagalog_Detector {
 //            Log.i(TAG, "output length: " + output.length);
 //            Log.i(TAG, "output array: " + Arrays.toString(output[0]));
 
-            Log.i(TAG, "\nSTART");
-
-            Log.i(TAG, "heence word: "+text + "  output[0][0]: "+output[0][0] + " | output[0][1]: "+ output[0][1] + " softmax[0]: " +probabilities[0] + " softmax[1]: "+ probabilities[1] + " label: " +l);
-            debugInput(text, inputIds, attentionMask);
+//            Log.i(TAG, "\nSTART");
+//
+//            Log.i(TAG, "heence word: "+text + "  output[0][0]: "+output[0][0] + " | output[0][1]: "+ output[0][1] + " softmax[0]: " +probabilities[0] + " softmax[1]: "+ probabilities[1] + " label: " +l);
+//            debugInput(text, inputIds, attentionMask);
 //            int predClass = output[0][0] > output[0][1] ? 0 : 1;
 //            if (predClass == 1) continue;
 //            Log.i(TAG, "left: " + t.left + " top: " + t.top + " right: " + t.right + " bottom:" + t.bottom);
 
 
-            if (l.equals("nsfw") ) {
+            if (l.equals("nsfw")) {
                 detectionResultList.add(new DetectionResult(
                         0,
                         max_cfs,
@@ -138,8 +147,8 @@ public class DistilBERT_tagalog_Detector {
 
             Log.i(TAG, "\n");
         }
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
+//        long endTime = System.currentTimeMillis();
+//        long duration = endTime - startTime;
 //        Log.i(TAG, "this for loop took: " + duration + " ms");
         return detectionResultList;
     }
@@ -152,20 +161,30 @@ public class DistilBERT_tagalog_Detector {
     }
 
     public float[][] runInference(long[] inputIds, long[] attentionMask) {
-        long startTime = System.currentTimeMillis();
+        if (interpreter == null) return outputs;
+        long now = System.currentTimeMillis();
         int seqLen = inputIds.length;
         for (int i = 0; i < seqLen; i++) {
             ids[0][i] = (int) inputIds[i];
             mask[0][i] = (int) attentionMask[i];
         }
+        try {
+            Object[] inputArray = new Object[]{mask, ids};
+            Log.i("gpteam", "inputbuffer "+(System.currentTimeMillis()-now));
 
-        Object[] inputArray = new Object[]{mask, ids};
-        Map<Integer, Object> outputsMap = new HashMap<>();
-        outputsMap.put(0, outputs);
+            now = System.currentTimeMillis();
+            Map<Integer, Object> outputsMap = new HashMap<>();
+            outputsMap.put(0, outputs);
+            Log.i("gpteam", "outputbuffer "+(System.currentTimeMillis()-now));
 
-        interpreter.runForMultipleInputsOutputs(inputArray, outputsMap);
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
+            now = System.currentTimeMillis();
+            interpreter.runForMultipleInputsOutputs(inputArray, outputsMap);
+            Log.i("gpteam", "model.run "+(System.currentTimeMillis()-now));
+
+        } catch (Exception e){
+            Log.i(TAG, "runInference error: "+ e.getMessage());
+        }
+
 //        Log.i(TAG, "inference function took: " + duration + " ms");
         return outputs;
     }

@@ -30,19 +30,22 @@ public class TextModel {
     String selectedModel;
     int statusBarHeight = 0;
     public static final String TAG = "TEXTMODEL";
-
-    public TextModel(Context mcontext, String name) {
+    int etn = 60;
+    public TextModel(Context mcontext, String name, int etn) {
         this.mcontext = mcontext;
+        this.etn = etn;
         selectedModel = name;
         Log.i(TAG, "TextModel: the selected model is " + name);
         if (name.equals(ModelTypes.ROBERTA_TAGALOG)) {
-            robertaTagalogDetector = new Roberta_tagalog_Detector(mcontext);
+            robertaTagalogDetector = new Roberta_tagalog_Detector(mcontext, etn);
         } else if (name.equals(ModelTypes.DISTILBERT_TAGALOG)) {
-            distilBERTDetector = new DistilBERT_tagalog_Detector(mcontext);
+            distilBERTDetector = new DistilBERT_tagalog_Detector(mcontext, etn);
         } else if (name.equals(ModelTypes.LSTM)) {
-            lstmDetector = new LSTM_Detector(mcontext);
+            lstmDetector = new LSTM_Detector(mcontext, etn, ModelTypes.LSTM);
         } else if (name.equals(ModelTypes.MOBILEBERT)) {
-            mobilebertDetector = new Mobilebert_Detector(mcontext);
+            mobilebertDetector = new Mobilebert_Detector(mcontext, etn);
+        } else if (name.equals(ModelTypes.BILSTM)){
+            lstmDetector = new LSTM_Detector(mcontext, etn, ModelTypes.BILSTM);
         }
 //            else if (name.equals(ModelTypes.LogisticRegression)) {
 //            logisticRegressionDetector = new LogisticRegression_Detector(mcontext);
@@ -66,6 +69,8 @@ public class TextModel {
                 return mobilebertDetector.detect(bitmap);
             case ModelTypes.LSTM:
 //                    return null;
+                return lstmDetector.detect(bitmap);
+            case ModelTypes.BILSTM:
                 return lstmDetector.detect(bitmap);
             case ModelTypes.LogisticRegression:
                 return null;
