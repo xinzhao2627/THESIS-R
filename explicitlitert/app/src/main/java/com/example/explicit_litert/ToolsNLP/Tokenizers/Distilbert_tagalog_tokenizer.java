@@ -36,7 +36,7 @@ public class Distilbert_tagalog_tokenizer {
     private Map<String, Integer> vocab;
     private Map<Integer, String> idToToken;
     private Set<String> specialTokens;
-    private final int maxLength = ModelTypes.DISTILBERT_TAGALOG_SEQ_LEN;
+    private int maxLength = ModelTypes.DISTILBERT_TAGALOG_SEQ_LEN;
     private static final String TAG = "DistilBert Tokenizer";
 
     public static class TokenizedResult {
@@ -51,7 +51,8 @@ public class Distilbert_tagalog_tokenizer {
         }
     }
 
-    public Distilbert_tagalog_tokenizer(InputStream tokenizerJsonStream) {
+    public Distilbert_tagalog_tokenizer(InputStream tokenizerJsonStream, int maxLength) {
+        this.maxLength = maxLength;
         this.vocab = new HashMap<>();
         this.idToToken = new HashMap<>();
         this.specialTokens = new HashSet<>();

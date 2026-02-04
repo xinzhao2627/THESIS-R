@@ -113,11 +113,35 @@ public class OverlayFunctions {
 
     public void initRecorder() {
         setupDynamicOverlay();
+        final Handler handlerCB = new Handler(Looper.getMainLooper());
         MediaProjection.Callback callback = new MediaProjection.Callback() {
             @Override
             public void onStop() {
+                Log.d("OverlayService", "MediaProjection stopped");
                 super.onStop();
                 stopScreenCapture();
+            }
+            @Override
+            public void onCapturedContentVisibilityChanged(boolean isVisible) {
+                super.onCapturedContentVisibilityChanged(isVisible);
+                Log.d(TAG, "Captured content visibility changed: " + isVisible);
+                // called when the captured app becomes visible/invisible
+                // reset view
+                if (!isVisible){
+                    handlerCB.postDelayed(()-> {
+                        if (dynamicView != null) {
+                            dynamicView.clearDetectionOverlays();
+                        }
+
+                    }, 1000);
+                }
+            }
+
+            @Override
+            public void onCapturedContentResize(int width, int height) {
+                super.onCapturedContentResize(width, height);
+                Log.d(TAG, "Captured content resized: " + width + "x" + height);
+                // Called when the captured app's size changes
             }
         };
         mediaProjection.registerCallback(callback, null);

@@ -42,21 +42,26 @@ public class ModelTypes {
     public static final String[] MOBILEBERT_LABELARRAY = {"safe", "nsfw"};
 
     //    FOR DISTILBERT
-//    public static final String DISTILBERT_TAGALOG = "distilbert_tagalog";
-//    public static final String DISTILBERT_TAGALOG_MODEL = "distilbert_tagalog/distilbert_tagalog_classification_model.tflite";
-//    public static final int DISTILBERT_TAGALOG_SEQ_LEN = 256;
-//    public static final String DISTILBERT_TAGALOG_TOKENIZER = "distilbert_tagalog/tokenizer.json";
-//    public static final String[] DISTILBERT_TAGALOG_LABELARRAY = {"safe", "nsfw"};
+    public static final String DISTILBERT_TAGALOG = "distilbert_tagalog";
+    public static final String DISTILBERT_TAGALOG_MODEL = "distilbert_tagalog/distilbert_tagalog_classification_model.tflite";
+    public static final int DISTILBERT_TAGALOG_SEQ_LEN = 256;
+    public static final String DISTILBERT_TAGALOG_TOKENIZER = "distilbert_tagalog/tokenizer.json";
+    public static final String[] DISTILBERT_TAGALOG_LABELARRAY = {"safe", "nsfw"};
 
 //    public static final String[] DISTILBERT_TAGALOG_LABELARRAY = {"nsfw", "safe"};
 
 //    FOR TINYBERT
-    public static final String DISTILBERT_TAGALOG = "tinybert";
-    public static final String DISTILBERT_TAGALOG_MODEL = "tinybert/tinybert_nsfw.tflite";
-    public static final int DISTILBERT_TAGALOG_SEQ_LEN = 128;
-    public static final String DISTILBERT_TAGALOG_TOKENIZER = "tinybert/tokenizer.json";
-    public static final String[] DISTILBERT_TAGALOG_LABELARRAY = {"safe", "nsfw"};
+//    public static final String DISTILBERT_TAGALOG = "tinybert";
+//    public static final String DISTILBERT_TAGALOG_MODEL = "tinybert/tinybert_nsfw.tflite";
+//    public static final int DISTILBERT_TAGALOG_SEQ_LEN = 128;
+//    public static final String DISTILBERT_TAGALOG_TOKENIZER = "tinybert/tokenizer.json";
+//    public static final String[] DISTILBERT_TAGALOG_LABELARRAY = {"safe", "nsfw"};
 
+    public static final String TINYBERT = "tinybert";
+    public static final String TINYBERT_MODEL = "tinybert/tinybert_nsfw.tflite";
+    public static final int TINYBERT_SEQ_LEN = 128;
+    public static final String TINYBERT_TOKENIZER = "tinybert/tokenizer.json";
+    public static final String[] TINYBERT_LABELARRAY = {"safe", "nsfw"};
 
     //    FOR LSTM
     public static final String LSTM = "lstm";
@@ -91,11 +96,8 @@ public class ModelTypes {
     public static final String[] MINILM_LABELARRAY = {"safe", "nsfw"};
     public static final int MINILM_SEQ_LEN = 128;
     public static final String MINILM_TOKENIZER = "minilm/tokenizer.json";
-    public static final String TINYBERT = "tinybert";
-    public static final String TINYBERT_MODEL = "tinybert/tinybert_nsfw.tflite";
-    public static final int TINYBERT_SEQ_LEN = 128;
-    public static final String TINYBERT_TOKENIZER = "tinybert/tokenizer.json";
-    public static final String[] TINYBERT_LABELARRAY = {"safe", "nsfw"};
+
+
 
 
     public static final String LogisticRegression = "logistic_regression";

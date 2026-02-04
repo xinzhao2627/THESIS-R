@@ -123,7 +123,7 @@ public class OverlayService extends Service {
                 overlayFunctions.setup(wm, getResources().getDisplayMetrics().densityDpi, mediaProjection, mediaProjectionManager);
             }
         }
-        startPerformanceMonitoring();
+//        startPerformanceMonitoring();
 
         return START_STICKY;
     }

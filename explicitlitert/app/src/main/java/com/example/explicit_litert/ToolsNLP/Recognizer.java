@@ -59,7 +59,7 @@ public class Recognizer {
                     if (text.isEmpty()) continue;
                     if (!text.matches(".*[a-zA-Z].*")) continue;
 //                    Log.w(TAG, "left: " + rect.left + " right: " + rect.right + " top: " + rect.top + " bottom: " + rect.bottom);
-                    textList.add(new TextResults(rect.left, top, rect.right, bottom, 1, t.getValue()));
+                    textList.add(new TextResults(rect.left, top, rect.right, bottom, 1, text));
                 }
             }
         }catch (Exception e) {

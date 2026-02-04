@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?><!--The activity_overlay.xml -->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clickable="false"
+    android:focusable="false"
+    android:focusableInTouchMode="false"
+    android:orientation="vertical"
+    android:padding="0dp"
+    >
+
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="346dp"
+        android:layout_height="468dp"
+        android:layout_marginStart="62dp"
+        android:layout_marginTop="60dp"
+        android:layout_marginEnd="62dp"
+        android:layout_marginBottom="60dp"
+        android:background="@color/white"
+        android:fontFamily="@font/inter_black"
+        android:letterSpacing="0.08"
+        android:paddingHorizontal="30px"
+        android:paddingVertical="30px"
+        android:text="NSFW detected. This content has been blurred because of harmful explicit content. Please go back to homescreen to remove the blur."
+        android:textAlignment="center"
+        android:textColor="@color/black"
+        android:textFontWeight="700"
+        android:textSize="34sp"
+        app:layout_constraintBottom_toTopOf="@+id/tohomescreenButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/tohomescreenButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="160dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="161dp"
+        android:layout_marginBottom="60dp"
+        android:backgroundTint="#B92323"
+        android:fontFamily="@font/inter_medium"
+        android:letterSpacing="0.03"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="10dp"
+        android:text="To Homescreen"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView" />
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -38,8 +38,8 @@ public class TextModel {
         Log.i(TAG, "TextModel: the selected model is " + name);
         if (name.equals(ModelTypes.ROBERTA_TAGALOG)) {
             robertaTagalogDetector = new Roberta_tagalog_Detector(mcontext, etn);
-        } else if (name.equals(ModelTypes.DISTILBERT_TAGALOG)) {
-            distilBERTDetector = new DistilBERT_tagalog_Detector(mcontext, etn);
+        } else if (name.equals(ModelTypes.DISTILBERT_TAGALOG) || name.equals(ModelTypes.TINYBERT)) {
+            distilBERTDetector = new DistilBERT_tagalog_Detector(mcontext, etn, name);
         } else if (name.equals(ModelTypes.LSTM)) {
             lstmDetector = new LSTM_Detector(mcontext, etn, ModelTypes.LSTM);
         } else if (name.equals(ModelTypes.MOBILEBERT)) {
@@ -63,6 +63,9 @@ public class TextModel {
 //                    return null;
                 return robertaTagalogDetector.detect(bitmap);
             case ModelTypes.DISTILBERT_TAGALOG:
+//                    return null;
+                return distilBERTDetector.detect(bitmap);
+            case ModelTypes.TINYBERT:
 //                    return null;
                 return distilBERTDetector.detect(bitmap);
             case ModelTypes.MOBILEBERT:

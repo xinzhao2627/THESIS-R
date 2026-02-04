@@ -39,16 +39,14 @@ public class MainActivity extends AppCompatActivity {
     ActivityResultLauncher<Intent> mediaProjectionLauncher;
     public static final String TAG = "MainActivity";
     boolean isServiceRunning = false;
-    final String[] options = {"dynamic", "static"};
     //    final String[] tmo = {"none", ModelTypes.LogisticRegression, ModelTypes.LSTM, ModelTypes.NaiveBayes, ModelTypes.SVM, ModelTypes.DISTILBERT_TAGALOG, ModelTypes.ROBERTA_TAGALOG};
 //    final String[] imo = {"none", ModelTypes.YOLO_V10_F32, ModelTypes.MOBILENET_SSD, ModelTypes.EFFICIENTDET, ModelTypes.YOLO_V11N, ModelTypes.YOLO_V5};
-    final String[] tmo = {"none", ModelTypes.LSTM, ModelTypes.BILSTM, ModelTypes.DISTILBERT_TAGALOG, ModelTypes.ROBERTA_TAGALOG, ModelTypes.MOBILEBERT};
+    final String[] tmo = {"none", ModelTypes.LSTM, ModelTypes.BILSTM, ModelTypes.TINYBERT, ModelTypes.DISTILBERT_TAGALOG, ModelTypes.ROBERTA_TAGALOG, ModelTypes.MOBILEBERT};
     final String[] imo = {"none", ModelTypes.YOLO_V11N, ModelTypes.YOLO_V10_F16, ModelTypes.YOLO_V5N_320, ModelTypes.YOLO_V5N_640, ModelTypes.YOLO_V5S_320};
 
 
     String imageDetector;
     String textDetector;
-    String selectedOption;
     EditText editTextNumber;
 
     @Override
@@ -65,7 +63,6 @@ public class MainActivity extends AppCompatActivity {
         editTextNumber = findViewById(R.id.editTextNumber);
         overlayPermissionButton = findViewById(R.id.overlayPermissionButton);
         mediaProjectionManager = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
-        overlayDropdownSetup();
         textModelDropdownSetup();
         imageModelDropdownSetup();
 
@@ -206,25 +203,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void overlayDropdownSetup() {
-        Spinner overlaySpinner = findViewById(R.id.overlaySpinner);
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, options);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        overlaySpinner.setAdapter(adapter);
 
-        overlaySpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                String selected = options[position];
-                Log.d(TAG, "Selected overlay type: " + selected);
-                selectedOption = selected;
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
-        });
-    }
 
     private void textModelDropdownSetup() {
         Spinner textSpinner = findViewById(R.id.textSpinner);

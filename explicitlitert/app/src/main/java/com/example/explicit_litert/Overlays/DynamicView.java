@@ -52,13 +52,13 @@ public class DynamicView {
     Map<TrackedBox, View> overlayMap = new HashMap<>();
 
     long DETECTION_PERSIST_MS = 2000;
-    int MAX_MISSES = 5;
+    int MAX_MISSES = 1;
     float IOU_THRESHOLD = 0.6f;
 
     String imageModelName;
     String textModelName;
 
-
+//    boolean overlayPaused = false;
     public DynamicView(Context mcontext, WindowManager wm, String imageModelName, String textModelName) {
         this.mcontext = mcontext;
         this.wm = wm;
@@ -76,6 +76,9 @@ public class DynamicView {
         );
     }
 
+//    public void setOverlayPaused(boolean overlayPaused) {
+//        this.overlayPaused = overlayPaused;
+//    }
 
     public void updateDetections(List<DetectionResult> newDetections) {
         long now = System.currentTimeMillis();
@@ -271,7 +274,6 @@ public class DynamicView {
         params.height = (int) height;
         wm.updateViewLayout(v, params);
     }
-
     private void removeOverlay(TrackedBox tb) {
         View v = overlayMap.get(tb);
         if (v != null) {
@@ -446,16 +448,20 @@ public class DynamicView {
     }
 
     public void clearDetectionOverlays() {
-        for (View v : overlayMap.values()) {
-            try {
-                wm.removeView(v);
+        if (overlayMap != null){
+            for (View v : overlayMap.values()) {
+                try {
+                    wm.removeView(v);
 
-            } catch (Exception e) {
-                Log.e("DynamicView", "view already removed");
+                } catch (Exception e) {
+                    Log.e("DynamicView", "view already removed");
+                }
             }
+            overlayMap.clear();
         }
-        overlayMap.clear();
-        previousDetections.clear();
+        if (previousDetections != null) {
+            previousDetections.clear();
+        }
 
 //        if (colorSquare != null) {
 //            wm.removeView(colorSquare);
