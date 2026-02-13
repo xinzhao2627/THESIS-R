@@ -42,8 +42,21 @@ public class MainActivity extends AppCompatActivity {
     //    final String[] tmo = {"none", ModelTypes.LogisticRegression, ModelTypes.LSTM, ModelTypes.NaiveBayes, ModelTypes.SVM, ModelTypes.DISTILBERT_TAGALOG, ModelTypes.ROBERTA_TAGALOG};
 //    final String[] imo = {"none", ModelTypes.YOLO_V10_F32, ModelTypes.MOBILENET_SSD, ModelTypes.EFFICIENTDET, ModelTypes.YOLO_V11N, ModelTypes.YOLO_V5};
     final String[] tmo = {"none", ModelTypes.LSTM, ModelTypes.BILSTM, ModelTypes.TINYBERT, ModelTypes.DISTILBERT_TAGALOG, ModelTypes.ROBERTA_TAGALOG, ModelTypes.MOBILEBERT};
-    final String[] imo = {"none", ModelTypes.YOLO_V11N, ModelTypes.YOLO_V10_F16, ModelTypes.YOLO_V5N_320, ModelTypes.YOLO_V5N_640, ModelTypes.YOLO_V5S_320};
+    final String[] imo = { "none",
+            ModelTypes.YOLO_V11N_320,
+            ModelTypes.YOLO_V11N_768,
+            ModelTypes.YOLO_V11S_320,
+            ModelTypes.YOLO_V11S_640,
+            ModelTypes.YOLO_V12N_320,
+            ModelTypes.YOLO_V12N_640,
+            ModelTypes.YOLO_V12S_320,
+            ModelTypes.YOLO_V12S_640,
 
+            ModelTypes.YOLO_V10_F16,
+            ModelTypes.YOLO_V5N_320,
+            ModelTypes.YOLO_V5N_640,
+            ModelTypes.YOLO_V5S_320,
+            ModelTypes.YOLO_V5S_640};
 
     String imageDetector;
     String textDetector;

@@ -30,10 +30,58 @@ public class ImageModel {
         this.mcontext = mcontext;
         selectedModel = name;
 
-        if (name.equals(ModelTypes.YOLO_V11N)) {
-            yolov11nDetector = new Yolov11n_Detector(mcontext, ModelTypes.YOLO_V11N + "/" + ModelTypes.YOLO_V11N_MODEL);
-            Log.i(TAG, name);
+// YOLOv11
+        if (name.equals(ModelTypes.YOLO_V11N_320)) {
+            yolov11nDetector = new Yolov11n_Detector(
+                    mcontext,
+                    "yolov11n" + "/" + ModelTypes.YOLO_V11N_320_MODEL
+            );
         }
+        if (name.equals(ModelTypes.YOLO_V11N_768)) {
+            yolov11nDetector = new Yolov11n_Detector(
+                    mcontext,
+                    "yolov11n" + "/" + ModelTypes.YOLO_V11N_768_MODEL
+            );
+        }
+        if (name.equals(ModelTypes.YOLO_V11S_320)) {
+            yolov11nDetector = new Yolov11n_Detector(
+                    mcontext,
+                    "yolov11s" + "/" + ModelTypes.YOLO_V11S_320_MODEL
+            );
+        }
+        if (name.equals(ModelTypes.YOLO_V11S_640)) {
+            yolov11nDetector = new Yolov11n_Detector(
+                    mcontext,
+                    "yolov11s" + "/" + ModelTypes.YOLO_V11S_640_MODEL
+            );
+        }
+
+// YOLOv12
+        if (name.equals(ModelTypes.YOLO_V12N_320)) {
+            yolov11nDetector = new Yolov11n_Detector(
+                    mcontext,
+                    "yolov12n" + "/" + ModelTypes.YOLO_V12N_320_MODEL
+            );
+        }
+        if (name.equals(ModelTypes.YOLO_V12N_640)) {
+            yolov11nDetector = new Yolov11n_Detector(
+                    mcontext,
+                    "yolov12n" + "/" + ModelTypes.YOLO_V12N_640_MODEL
+            );
+        }
+        if (name.equals(ModelTypes.YOLO_V12S_320)) {
+            yolov11nDetector = new Yolov11n_Detector(
+                    mcontext,
+                    "yolov12s" + "/" + ModelTypes.YOLO_V12S_320_MODEL
+            );
+        }
+        if (name.equals(ModelTypes.YOLO_V12S_640)) {
+            yolov11nDetector = new Yolov11n_Detector(
+                    mcontext,
+                    "yolov12s" + "/" + ModelTypes.YOLO_V12S_640_MODEL
+            );
+        }
+
 
         if (name.equals(ModelTypes.EFFICIENTDET)) {
             efficientdetDetector = new Efficientdet_Detector(
@@ -77,12 +125,28 @@ public class ImageModel {
                     ModelTypes.YOLO_V5S_320
             );
         }
+        if (name.equals(ModelTypes.YOLO_V5S_640)){
+            yolov5Detector = new Yolov5_Detector(
+                    mcontext,
+                    "yolov5s" + "/" + ModelTypes.YOLO_V5S_640_MODEL,
+                    ModelTypes.YOLO_V5S_640
+            );
+        }
 
     }
 
     public ClassifyResults detect(Bitmap bitmap) {
-        if (selectedModel.equals(ModelTypes.YOLO_V11N)) {
-//            Log.i(TAG, "detect: v11 running..");
+        if (
+                selectedModel.equals(ModelTypes.YOLO_V11N_320) ||
+                        selectedModel.equals(ModelTypes.YOLO_V11N_768) ||
+                        selectedModel.equals(ModelTypes.YOLO_V11S_320) ||
+                        selectedModel.equals(ModelTypes.YOLO_V11S_640) ||
+                        selectedModel.equals(ModelTypes.YOLO_V12N_320) ||
+                        selectedModel.equals(ModelTypes.YOLO_V12N_640) ||
+                        selectedModel.equals(ModelTypes.YOLO_V12S_320) ||
+                        selectedModel.equals(ModelTypes.YOLO_V12S_640)
+        ) {
+            // Log.i(TAG, "detect: v11/v12 running..");
             return yolov11nDetector.detect(bitmap);
         }
         if (selectedModel.equals(ModelTypes.EFFICIENTDET)) {
@@ -95,6 +159,7 @@ public class ImageModel {
                 || selectedModel.equals(ModelTypes.YOLO_V5N_320)
                 || selectedModel.equals(ModelTypes.YOLO_V5N_640)
                 || selectedModel.equals(ModelTypes.YOLO_V5S_320)
+                || selectedModel.equals(ModelTypes.YOLO_V5S_640)
         ){
             return yolov5Detector.detect(bitmap);
         }

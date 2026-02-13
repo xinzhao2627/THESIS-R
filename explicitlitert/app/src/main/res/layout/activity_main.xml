@@ -153,7 +153,7 @@
                         android:id="@+id/textView2"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Recognizer Offset (increase the offset value if the text boxes are slightly lower) (e.g 100)" />
+                        android:text="Recognizer Offset for TEXT MODELS (increase the offset value if the text boxes are slightly lower) (e.g 100)" />
 
                     <EditText
                         android:id="@+id/editTextNumber"

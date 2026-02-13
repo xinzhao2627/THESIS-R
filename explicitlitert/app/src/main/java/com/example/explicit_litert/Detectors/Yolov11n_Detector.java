@@ -39,6 +39,27 @@ public class Yolov11n_Detector {
     CompiledModel model;
 
     public Yolov11n_Detector(Context context, String chosen_image_model) throws IOException {
+        if (
+                chosen_image_model.contains("_320")
+        ) {
+            Log.i(TAG, "Yolo_Detector: using " + 320 + " modelpath: " + chosen_image_model);
+
+        } else if (
+                chosen_image_model.contains("_640")
+        ) {
+            Log.i(TAG, "Yolo_Detector: using " + 640 + " modelpath: " + chosen_image_model);
+
+             numElements = 8400;
+             img_size = 640;
+
+        } else if (
+                chosen_image_model.contains("_768")
+        ) {
+            Log.i(TAG, "Yolo_Detector: using " + 768 + " modelpath: " + chosen_image_model);
+
+             numElements = 12096;
+             img_size = 768;
+        }
         labels = new ArrayList<>();
         labels.add("nsfw");
         labels.add("safe");

@@ -4,10 +4,36 @@ public class ModelTypes {
     public static final String YOLO_V10_F16 = "yolov10n";
     public static final String YOLO_V10_F16_MODEL = "best_640_float16.tflite";
 
-    // for v12 and v11
-    public static final String YOLO_V11N = "yolov11n";
-    public static final String YOLO_V11N_MODEL = "best_320_float16.tflite";
-//    public static final String YOLO_V11N_MODEL = "best_float16_640.tflite";
+
+    // YOLOv11 – nano (n)
+    public static final String YOLO_V11N_320 = "yolov11n320";
+    public static final String YOLO_V11N_320_MODEL = "best_320_float16.tflite";
+
+    public static final String YOLO_V11N_768 = "yolov11n768";
+    public static final String YOLO_V11N_768_MODEL = "best_768_float16.tflite";
+
+    // YOLOv11 – small (s)
+    public static final String YOLO_V11S_320 = "yolov11s320";
+    public static final String YOLO_V11S_320_MODEL = "best_320_float16.tflite";
+
+    public static final String YOLO_V11S_640 = "yolov11s640";
+    public static final String YOLO_V11S_640_MODEL = "best_640_float16.tflite";
+
+    // YOLOv12 – nano (n)
+    public static final String YOLO_V12N_320 = "yolov12n320";
+    public static final String YOLO_V12N_320_MODEL = "best_320_float16.tflite";
+
+    public static final String YOLO_V12N_640 = "yolov12n640";
+    public static final String YOLO_V12N_640_MODEL = "best_640_float16.tflite";
+
+    // YOLOv12 – small (s)
+    public static final String YOLO_V12S_320 = "yolov12s320";
+    public static final String YOLO_V12S_320_MODEL = "best_320_float16.tflite";
+
+    public static final String YOLO_V12S_640 = "yolov12s640";
+    public static final String YOLO_V12S_640_MODEL = "best_640_float16.tflite";
+
+
 
 
     public static final String YOLO_V5 = "yolov5n";
@@ -21,6 +47,9 @@ public class ModelTypes {
 
     public static final String YOLO_V5S_320 = "yolov5s320";
     public static final String YOLO_V5S_320_MODEL = "best-fp16_320.tflite";
+
+    public static final String YOLO_V5S_640 = "yolov5s640";
+    public static final String YOLO_V5S_640_MODEL = "best-fp16_640.tflite";
 
 //  FOR ROBERTA & DOST ROBERTA
 //    public static final String ROBERTA_TAGALOG = "roberta_tagalog";
