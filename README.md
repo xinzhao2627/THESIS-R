@@ -24,7 +24,7 @@
 
 - YOLOv5 (320x320) - 21fps
 - YOLOv11 & 12 (320x320) - 18fps
-- YOLOv10 - 5ps
+- YOLOv10 - 5fps
 
 ### How to test the app in android studio:
 
